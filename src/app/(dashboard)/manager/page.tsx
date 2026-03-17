@@ -1,0 +1,514 @@
+"use client";
+
+import { useState } from "react";
+import { format } from "date-fns";
+import {
+  Check,
+  X,
+  Clock,
+  Plane,
+  Home,
+  MessageSquare,
+
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { PageHeader } from "@/components/away/page-header";
+import { LoadingTable } from "@/components/away/loading-cards";
+import { useFetch } from "@/hooks/use-fetch";
+import { useAction } from "@/hooks/use-action";
+import {
+  leaveTypeLabels,
+  leaveTypeColors,
+  statusColors,
+  formatDateRange,
+} from "@/lib/helpers";
+import { cn } from "@/lib/utils";
+
+interface Employee {
+  _id: string;
+  name: string;
+  email: string;
+  image?: string;
+}
+
+interface LeaveRequestData {
+  _id: string;
+  employeeId: Employee;
+  managerId: { _id: string; name: string };
+  leaveType: string;
+  startDate: string;
+  endDate: string;
+  numberOfDays: number;
+  reason: string;
+  status: string;
+  managerComment?: string;
+  createdAt: string;
+}
+
+interface WFHRequestData {
+  _id: string;
+  employeeId: Employee;
+  managerId: { _id: string; name: string };
+  date: string;
+  reason: string;
+  status: string;
+  managerComment?: string;
+  createdAt: string;
+}
+
+export default function ManagerPage() {
+  const [actionDialog, setActionDialog] = useState<{
+    type: "leave" | "wfh";
+    id: string;
+    action: "approved" | "rejected";
+    employeeName: string;
+  } | null>(null);
+  const [comment, setComment] = useState("");
+
+  const {
+    data: leaveRequests,
+    loading: loadingLeave,
+    refetch: refetchLeave,
+  } = useFetch<LeaveRequestData[]>("/api/leave-requests");
+
+  const {
+    data: wfhRequests,
+    loading: loadingWfh,
+    refetch: refetchWfh,
+  } = useFetch<WFHRequestData[]>("/api/wfh-requests");
+
+  const managerAction = useAction({
+    onSuccess: () => {
+      setActionDialog(null);
+      setComment("");
+      refetchLeave();
+      refetchWfh();
+    },
+  });
+
+  const handleAction = () => {
+    if (!actionDialog) return;
+    const url =
+      actionDialog.type === "leave"
+        ? `/api/leave-requests/${actionDialog.id}`
+        : `/api/wfh-requests/${actionDialog.id}`;
+
+    managerAction.execute(url, {
+      method: "PATCH",
+      body: JSON.stringify({
+        status: actionDialog.action,
+        managerComment: comment || undefined,
+      }),
+    });
+  };
+
+  const pendingLeave = (leaveRequests || []).filter((r) => r.status === "pending");
+  const pastLeave = (leaveRequests || []).filter((r) => r.status !== "pending");
+  const pendingWfh = (wfhRequests || []).filter((r) => r.status === "pending");
+  const pastWfh = (wfhRequests || []).filter((r) => r.status !== "pending");
+
+  const pendingCount = pendingLeave.length + pendingWfh.length;
+
+  return (
+    <div>
+      <PageHeader
+        title="Team Requests"
+        description="Review and manage leave and WFH requests from your team."
+      >
+        {pendingCount > 0 && (
+          <Badge className="bg-amber-100 text-amber-700 text-sm px-3 py-1">
+            <Clock className="h-3.5 w-3.5 mr-1.5" />
+            {pendingCount} pending
+          </Badge>
+        )}
+      </PageHeader>
+
+      <Tabs defaultValue="leave" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="leave" className="gap-2">
+            <Plane className="h-4 w-4" />
+            Leave Requests
+            {pendingLeave.length > 0 && (
+              <span className="ml-1 bg-primary/10 text-primary text-xs px-1.5 py-0.5 rounded-full">
+                {pendingLeave.length}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="wfh" className="gap-2">
+            <Home className="h-4 w-4" />
+            WFH Requests
+            {pendingWfh.length > 0 && (
+              <span className="ml-1 bg-primary/10 text-primary text-xs px-1.5 py-0.5 rounded-full">
+                {pendingWfh.length}
+              </span>
+            )}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="leave">
+          {loadingLeave ? (
+            <LoadingTable rows={4} />
+          ) : (
+            <div className="space-y-6">
+              {/* Pending */}
+              {pendingLeave.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Clock className="h-5 w-5 text-amber-500" />
+                      Pending Approval
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {pendingLeave.map((req) => (
+                      <div
+                        key={req._id}
+                        className="flex items-start justify-between p-4 rounded-lg border bg-amber-50/80 border-amber-200/60"
+                      >
+                        <div className="flex items-start gap-3">
+                          <Avatar className="h-10 w-10 mt-0.5">
+                            <AvatarImage src={req.employeeId?.image} />
+                            <AvatarFallback className="text-xs bg-amber-100 text-amber-700">
+                              {req.employeeId?.name
+                                ?.split(" ")
+                                .map((n) => n[0])
+                                .join("")}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">{req.employeeId?.name}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge
+                                className={cn(
+                                  "text-[11px]",
+                                  leaveTypeColors[req.leaveType]
+                                )}
+                                variant="secondary"
+                              >
+                                {leaveTypeLabels[req.leaveType]}
+                              </Badge>
+                              <span className="text-sm text-muted-foreground">
+                                {formatDateRange(
+                                  format(new Date(req.startDate), "yyyy-MM-dd"),
+                                  format(new Date(req.endDate), "yyyy-MM-dd")
+                                )}
+                              </span>
+                              <span className="text-sm font-semibold tabular-nums">
+                                ({req.numberOfDays} day{req.numberOfDays > 1 ? "s" : ""})
+                              </span>
+                            </div>
+                            {req.reason && (
+                              <p className="text-sm text-muted-foreground mt-1 flex items-start gap-1">
+                                <MessageSquare className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                                {req.reason}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex gap-2 ml-4 shrink-0">
+                          <Button
+                            size="sm"
+                            className="gap-1 bg-emerald-600 hover:bg-emerald-700"
+                            onClick={() =>
+                              setActionDialog({
+                                type: "leave",
+                                id: req._id,
+                                action: "approved",
+                                employeeName: req.employeeId?.name,
+                              })
+                            }
+                          >
+                            <Check className="h-4 w-4" /> Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1 border-rose-200 text-rose-600 hover:bg-rose-50"
+                            onClick={() =>
+                              setActionDialog({
+                                type: "leave",
+                                id: req._id,
+                                action: "rejected",
+                                employeeName: req.employeeId?.name,
+                              })
+                            }
+                          >
+                            <X className="h-4 w-4" /> Reject
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* History */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">History</CardTitle>
+                  <CardDescription>Past leave requests from your team</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {pastLeave.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <p className="font-medium text-foreground/70">No past requests</p>
+                      <p className="text-sm mt-1">Resolved requests will appear here.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {pastLeave.slice(0, 20).map((req) => (
+                        <div
+                          key={req._id}
+                          className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/30 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src={req.employeeId?.image} />
+                              <AvatarFallback className="text-xs">
+                                {req.employeeId?.name
+                                  ?.split(" ")
+                                  .map((n) => n[0])
+                                  .join("")}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="text-sm font-medium">
+                                {req.employeeId?.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {leaveTypeLabels[req.leaveType]} &middot;{" "}
+                                {formatDateRange(
+                                  format(new Date(req.startDate), "yyyy-MM-dd"),
+                                  format(new Date(req.endDate), "yyyy-MM-dd")
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                          <Badge
+                            className={cn(
+                              "text-[11px] capitalize",
+                              statusColors[req.status]
+                            )}
+                            variant="secondary"
+                          >
+                            {req.status}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="wfh">
+          {loadingWfh ? (
+            <LoadingTable rows={4} />
+          ) : (
+            <div className="space-y-6">
+              {pendingWfh.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Clock className="h-5 w-5 text-amber-500" />
+                      Pending Approval
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {pendingWfh.map((req) => (
+                      <div
+                        key={req._id}
+                        className="flex items-start justify-between p-4 rounded-lg border bg-amber-50/80 border-amber-200/60"
+                      >
+                        <div className="flex items-start gap-3">
+                          <Avatar className="h-10 w-10 mt-0.5">
+                            <AvatarImage src={req.employeeId?.image} />
+                            <AvatarFallback className="text-xs bg-blue-100 text-blue-700">
+                              {req.employeeId?.name
+                                ?.split(" ")
+                                .map((n) => n[0])
+                                .join("")}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">{req.employeeId?.name}</p>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {format(new Date(req.date), "EEEE, MMMM d, yyyy")}
+                            </p>
+                            {req.reason && (
+                              <p className="text-sm text-muted-foreground mt-1 flex items-start gap-1">
+                                <MessageSquare className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                                {req.reason}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex gap-2 ml-4 shrink-0">
+                          <Button
+                            size="sm"
+                            className="gap-1 bg-emerald-600 hover:bg-emerald-700"
+                            onClick={() =>
+                              setActionDialog({
+                                type: "wfh",
+                                id: req._id,
+                                action: "approved",
+                                employeeName: req.employeeId?.name,
+                              })
+                            }
+                          >
+                            <Check className="h-4 w-4" /> Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1 border-rose-200 text-rose-600 hover:bg-rose-50"
+                            onClick={() =>
+                              setActionDialog({
+                                type: "wfh",
+                                id: req._id,
+                                action: "rejected",
+                                employeeName: req.employeeId?.name,
+                              })
+                            }
+                          >
+                            <X className="h-4 w-4" /> Reject
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">History</CardTitle>
+                  <CardDescription>Past WFH requests from your team</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {pastWfh.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <p className="font-medium text-foreground/70">No past requests</p>
+                      <p className="text-sm mt-1">Resolved requests will appear here.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {pastWfh.slice(0, 20).map((req) => (
+                        <div
+                          key={req._id}
+                          className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/30 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src={req.employeeId?.image} />
+                              <AvatarFallback className="text-xs">
+                                {req.employeeId?.name
+                                  ?.split(" ")
+                                  .map((n) => n[0])
+                                  .join("")}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="text-sm font-medium">
+                                {req.employeeId?.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                WFH &middot;{" "}
+                                {format(new Date(req.date), "MMM d, yyyy")}
+                              </p>
+                            </div>
+                          </div>
+                          <Badge
+                            className={cn(
+                              "text-[11px] capitalize",
+                              statusColors[req.status]
+                            )}
+                            variant="secondary"
+                          >
+                            {req.status}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      {/* Action Confirmation Dialog */}
+      <Dialog open={!!actionDialog} onOpenChange={() => { setActionDialog(null); setComment(""); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {actionDialog?.action === "approved" ? "Approve" : "Reject"} Request
+            </DialogTitle>
+            <DialogDescription>
+              {actionDialog?.action === "approved"
+                ? `Approve ${actionDialog?.employeeName}'s request?`
+                : `Reject ${actionDialog?.employeeName}'s request?`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>{actionDialog?.action === "rejected" ? "Reason for rejection" : "Comment"} <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <Textarea
+                placeholder="Add a comment..."
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                maxLength={500}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => { setActionDialog(null); setComment(""); }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAction}
+              disabled={managerAction.loading}
+              className={
+                actionDialog?.action === "approved"
+                  ? "bg-emerald-600 hover:bg-emerald-700"
+                  : "bg-rose-600 hover:bg-rose-700"
+              }
+            >
+              {managerAction.loading
+                ? "Processing..."
+                : actionDialog?.action === "approved"
+                ? "Approve"
+                : "Reject"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
