@@ -3,6 +3,7 @@ import { z } from "zod";
 export const leaveTypes = [
   "casual",
   "sick",
+  "personal",
   "wfh",
   "optional",
   "unpaid",

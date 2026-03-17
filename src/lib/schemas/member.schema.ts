@@ -3,9 +3,9 @@ import { z } from "zod";
 const ALLOWED_DOMAIN = process.env.ALLOWED_EMAIL_DOMAIN || "storepecker.me";
 
 export const AddMemberSchema = z.object({
-  slackUserId: z.string().min(1, "Slack user ID is required"),
-  slackEmail: z.string().email("Invalid Slack email"),
-  slackDisplayName: z.string().min(1, "Display name is required"),
+  slackUserId: z.string().default(""),
+  slackEmail: z.string().default(""),
+  slackDisplayName: z.string().min(1, "Name is required"),
   slackAvatar: z.string().optional(),
   workEmail: z
     .string()

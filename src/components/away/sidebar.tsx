@@ -13,6 +13,7 @@ import {
   LogOut,
   Settings,
   Shield,
+  Upload,
   Users,
 } from "lucide-react";
 import { Logo } from "./logo";
@@ -35,6 +36,7 @@ const adminLinks = [
   { href: "/admin", label: "Admin Panel", icon: Shield },
   { href: "/admin/members", label: "Team Members", icon: Users },
   { href: "/admin/calendar", label: "Holiday Calendar", icon: CalendarDays },
+  { href: "/admin/import", label: "Import Leaves", icon: Upload },
 ];
 
 export function Sidebar() {

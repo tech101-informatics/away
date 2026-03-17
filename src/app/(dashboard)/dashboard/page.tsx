@@ -12,6 +12,8 @@ import {
   XCircle,
   CheckCircle2,
   AlertCircle,
+  Users,
+  Building2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -54,6 +56,7 @@ import {
   leaveTypeColors,
   statusColors,
   formatDateRange,
+  calculateWorkingDays,
 } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 
@@ -98,11 +101,21 @@ interface RequestData {
   numberOfDays?: number;
   reason: string;
   status: string;
+  managerComment?: string;
   createdAt: string;
+}
+
+interface TeamTodayData {
+  totalActive: number;
+  inOffice: number;
+  onLeave: Array<{ _id: string; name: string; image?: string; leaveType?: string; isHalfDay?: boolean }>;
+  onWFH: Array<{ _id: string; name: string; image?: string; isHalfDay?: boolean }>;
 }
 
 export default function DashboardPage() {
   const { data: session } = useSession();
+  const role = session?.user?.role;
+  const isAdminOrManager = role === "admin" || role === "manager";
   const currentYear = new Date().getFullYear();
 
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
@@ -118,6 +131,8 @@ export default function DashboardPage() {
 
   // WFH form state
   const [wfhDate, setWfhDate] = useState<Date>();
+  const [wfhEndDate, setWfhEndDate] = useState<Date>();
+  const [wfhMultiDay, setWfhMultiDay] = useState(false);
   const [wfhReason, setWfhReason] = useState("");
   const [wfhHalfDay, setWfhHalfDay] = useState(false);
   const [wfhHalfDayPeriod, setWfhHalfDayPeriod] = useState<string>("morning");
@@ -135,12 +150,16 @@ export default function DashboardPage() {
     data: leaveRequests,
     loading: loadingLeave,
     refetch: refetchLeaveReqs,
-  } = useFetch<RequestData[]>("/api/leave-requests");
+  } = useFetch<RequestData[]>("/api/leave-requests?self=true");
   const {
     data: wfhRequests,
     loading: loadingWfh,
     refetch: refetchWfhReqs,
-  } = useFetch<RequestData[]>("/api/wfh-requests");
+  } = useFetch<RequestData[]>("/api/wfh-requests?self=true");
+
+  const { data: teamToday } = useFetch<TeamTodayData>(
+    isAdminOrManager ? "/api/team/today" : ""
+  );
 
   // Actions
   const leaveAction = useAction({
@@ -189,6 +208,8 @@ export default function DashboardPage() {
 
   const resetWfhForm = () => {
     setWfhDate(undefined);
+    setWfhEndDate(undefined);
+    setWfhMultiDay(false);
     setWfhReason("");
     setWfhHalfDay(false);
     setWfhHalfDayPeriod("morning");
@@ -217,20 +238,58 @@ export default function DashboardPage() {
     });
   };
 
-  const handleWfhSubmit = () => {
+  const handleWfhSubmit = async () => {
     if (!wfhDate || !wfhReason) {
       toast.error("Please fill all required fields");
       return;
     }
-    wfhAction.execute("/api/wfh-requests", {
-      method: "POST",
-      body: JSON.stringify({
-        date: format(wfhDate, "yyyy-MM-dd"),
-        reason: wfhReason,
-        isHalfDay: wfhHalfDay,
-        halfDayPeriod: wfhHalfDay ? wfhHalfDayPeriod : undefined,
-      }),
-    });
+
+    if (wfhMultiDay && wfhEndDate) {
+      // Submit one request per working day in range
+      const days: Date[] = [];
+      const current = new Date(wfhDate);
+      while (current <= wfhEndDate) {
+        if (current.getDay() !== 0 && current.getDay() !== 6) {
+          days.push(new Date(current));
+        }
+        current.setDate(current.getDate() + 1);
+      }
+
+      if (days.length === 0) {
+        toast.error("No working days in selected range");
+        return;
+      }
+
+      let submitted = 0;
+      for (const day of days) {
+        const result = await wfhAction.execute("/api/wfh-requests", {
+          method: "POST",
+          body: JSON.stringify({
+            date: format(day, "yyyy-MM-dd"),
+            reason: wfhReason,
+            isHalfDay: false,
+          }),
+        });
+        if (result) submitted++;
+      }
+
+      if (submitted > 0) {
+        toast.success(`${submitted} WFH request${submitted > 1 ? "s" : ""} submitted`);
+        setWfhDialogOpen(false);
+        resetWfhForm();
+        refetchWfhReqs();
+      }
+    } else {
+      wfhAction.execute("/api/wfh-requests", {
+        method: "POST",
+        body: JSON.stringify({
+          date: format(wfhDate, "yyyy-MM-dd"),
+          reason: wfhReason,
+          isHalfDay: wfhHalfDay,
+          halfDayPeriod: wfhHalfDay ? wfhHalfDayPeriod : undefined,
+        }),
+      });
+    }
   };
 
   const handleOptionalSelect = (holiday: { _id: string; name: string; date: string }) => {
@@ -262,7 +321,7 @@ export default function DashboardPage() {
   const selectionsCount = optionalSelections?.selectedHolidays?.length || 0;
 
   const allRequests = [
-    ...(leaveRequests || []).map((r) => ({ ...r, requestType: "leave" as const })),
+    ...(leaveRequests || []).filter((r) => (r as unknown as Record<string, unknown>).source !== "import").map((r) => ({ ...r, requestType: "leave" as const })),
     ...(wfhRequests || []).map((r) => ({ ...r, requestType: "wfh" as const })),
   ].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -279,7 +338,7 @@ export default function DashboardPage() {
         title={`Welcome back, ${session?.user?.name?.split(" ")[0] || ""}!`}
         description="Here's your leave overview and quick actions."
       >
-        <Dialog open={leaveDialogOpen} onOpenChange={setLeaveDialogOpen}>
+        <Dialog open={leaveDialogOpen} onOpenChange={(v) => { setLeaveDialogOpen(v); if (!v) leaveAction.clearErrors(); }}>
           <DialogTrigger asChild>
             <Button className="gap-2">
               <Plus className="h-4 w-4" /> Apply Leave
@@ -296,15 +355,15 @@ export default function DashboardPage() {
               {/* Leave type + balance display */}
               <div className="space-y-2">
                 <Label>Leave Type <span className="text-destructive">*</span></Label>
-                <Select value={leaveType} onValueChange={(v) => { setLeaveType(v); setIsHalfDay(false); }}>
+                <Select value={leaveType} onValueChange={(v) => { setLeaveType(v); setIsHalfDay(false); leaveAction.clearErrors(); }}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select leave type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.entries(leaveTypeLabels).map(([value, label]) => {
+                    {Object.entries(leaveTypeLabels).filter(([value]) => value !== "optional").map(([value, label]) => {
                       const bal = balances.find((b) => b.leaveType === value);
                       return (
-                        <SelectItem key={value} value={value}>
+                        <SelectItem key={value} value={value} label={label}>
                           <span className="flex items-center justify-between w-full gap-4">
                             <span>{label}</span>
                             {bal && (
@@ -428,6 +487,32 @@ export default function DashboardPage() {
                 </div>
               )}
 
+              {/* Day count preview */}
+              {!isHalfDay && startDate && endDate && (
+                (() => {
+                  const days = calculateWorkingDays(
+                    format(startDate, "yyyy-MM-dd"),
+                    format(endDate, "yyyy-MM-dd")
+                  );
+                  const totalDays = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                  const weekends = totalDays - days;
+                  return (
+                    <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/5 text-sm">
+                      <span className="font-semibold text-primary tabular-nums">{days} working day{days !== 1 ? "s" : ""}</span>
+                      {weekends > 0 && (
+                        <span className="text-muted-foreground text-xs">({weekends} weekend{weekends !== 1 ? "s" : ""} excluded)</span>
+                      )}
+                    </div>
+                  );
+                })()
+              )}
+              {isHalfDay && startDate && (
+                <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/5 text-sm">
+                  <span className="font-semibold text-primary tabular-nums">0.5 day</span>
+                  <span className="text-muted-foreground text-xs">({halfDayPeriod === "morning" ? "1st half" : "2nd half"})</span>
+                </div>
+              )}
+
               {/* Reason */}
               <div className="space-y-2">
                 <Label>Reason <span className="text-destructive">*</span></Label>
@@ -440,8 +525,21 @@ export default function DashboardPage() {
                 />
               </div>
             </div>
+            {/* Error display */}
+            {leaveAction.error && (
+              <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 space-y-1 mb-2">
+                <p className="text-sm font-medium text-destructive">{leaveAction.error}</p>
+                {leaveAction.errors.length > 1 && (
+                  <ul className="text-xs text-destructive/80 list-disc pl-4 space-y-0.5">
+                    {leaveAction.errors.slice(1).map((e, i) => (
+                      <li key={i}>{e}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
             <DialogFooter>
-              <Button variant="outline" onClick={() => setLeaveDialogOpen(false)}>
+              <Button variant="outline" onClick={() => { setLeaveDialogOpen(false); leaveAction.clearErrors(); }}>
                 Cancel
               </Button>
               <Button onClick={handleLeaveSubmit} disabled={leaveAction.loading}>
@@ -451,7 +549,7 @@ export default function DashboardPage() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={wfhDialogOpen} onOpenChange={setWfhDialogOpen}>
+        <Dialog open={wfhDialogOpen} onOpenChange={(v) => { setWfhDialogOpen(v); if (!v) wfhAction.clearErrors(); }}>
           <DialogTrigger asChild>
             <Button variant="outline" className="gap-2">
               <Home className="h-4 w-4" /> Request WFH
@@ -488,55 +586,106 @@ export default function DashboardPage() {
                 ) : null;
               })()}
 
-              {/* Date */}
-              <div className="space-y-2">
-                <Label>Date <span className="text-destructive">*</span></Label>
-                <DatePicker
-                  date={wfhDate}
-                  onSelect={setWfhDate}
-                  placeholder="Select date"
-                  disabled={isWeekendDay}
-                />
+              {/* Multi-day toggle */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-sm">Multiple days</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">Request WFH for a date range</p>
+                </div>
+                <Switch checked={wfhMultiDay} onCheckedChange={(v) => { setWfhMultiDay(v); if (v) { setWfhHalfDay(false); } }} />
               </div>
+
+              {/* Date(s) */}
+              {wfhMultiDay ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Start Date <span className="text-destructive">*</span></Label>
+                    <DatePicker
+                      date={wfhDate}
+                      onSelect={setWfhDate}
+                      placeholder="Start"
+                      disabled={isWeekendDay}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>End Date <span className="text-destructive">*</span></Label>
+                    <DatePicker
+                      date={wfhEndDate}
+                      onSelect={setWfhEndDate}
+                      placeholder="End"
+                      disabled={(d) => isWeekendDay(d) || (wfhDate ? d < wfhDate : false)}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label>Date <span className="text-destructive">*</span></Label>
+                  <DatePicker
+                    date={wfhDate}
+                    onSelect={setWfhDate}
+                    placeholder="Select date"
+                    disabled={isWeekendDay}
+                  />
+                </div>
+              )}
+
+              {/* Day count preview for multi-day */}
+              {wfhMultiDay && wfhDate && wfhEndDate && (
+                (() => {
+                  const days = calculateWorkingDays(
+                    format(wfhDate, "yyyy-MM-dd"),
+                    format(wfhEndDate, "yyyy-MM-dd")
+                  );
+                  return (
+                    <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-blue-50/50 text-sm">
+                      <span className="font-semibold text-blue-600 tabular-nums">{days} working day{days !== 1 ? "s" : ""}</span>
+                      <span className="text-xs text-muted-foreground">({days} WFH request{days !== 1 ? "s" : ""} will be created)</span>
+                    </div>
+                  );
+                })()
+              )}
 
               <Separator />
 
-              {/* Half day toggle */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-sm">Half day WFH</Label>
-                  <p className="text-xs text-muted-foreground mt-0.5">Work from home for half the day only</p>
-                </div>
-                <Switch checked={wfhHalfDay} onCheckedChange={setWfhHalfDay} />
-              </div>
-
-              {wfhHalfDay && (
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setWfhHalfDayPeriod("morning")}
-                    className={cn(
-                      "flex-1 py-2.5 px-4 rounded-lg text-sm font-medium border transition-colors",
-                      wfhHalfDayPeriod === "morning"
-                        ? "bg-blue-50 border-blue-200 text-blue-700"
-                        : "border-border text-muted-foreground hover:bg-accent"
-                    )}
-                  >
-                    Morning (1st half)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setWfhHalfDayPeriod("afternoon")}
-                    className={cn(
-                      "flex-1 py-2.5 px-4 rounded-lg text-sm font-medium border transition-colors",
-                      wfhHalfDayPeriod === "afternoon"
-                        ? "bg-blue-50 border-blue-200 text-blue-700"
-                        : "border-border text-muted-foreground hover:bg-accent"
-                    )}
-                  >
-                    Afternoon (2nd half)
-                  </button>
-                </div>
+              {/* Half day toggle (single day only) */}
+              {!wfhMultiDay && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-sm">Half day WFH</Label>
+                      <p className="text-xs text-muted-foreground mt-0.5">Work from home for half the day only</p>
+                    </div>
+                    <Switch checked={wfhHalfDay} onCheckedChange={setWfhHalfDay} />
+                  </div>
+                  {wfhHalfDay && (
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setWfhHalfDayPeriod("morning")}
+                        className={cn(
+                          "flex-1 py-2.5 px-4 rounded-lg text-sm font-medium border transition-colors",
+                          wfhHalfDayPeriod === "morning"
+                            ? "bg-blue-50 border-blue-200 text-blue-700"
+                            : "border-border text-muted-foreground hover:bg-accent"
+                        )}
+                      >
+                        Morning (1st half)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setWfhHalfDayPeriod("afternoon")}
+                        className={cn(
+                          "flex-1 py-2.5 px-4 rounded-lg text-sm font-medium border transition-colors",
+                          wfhHalfDayPeriod === "afternoon"
+                            ? "bg-blue-50 border-blue-200 text-blue-700"
+                            : "border-border text-muted-foreground hover:bg-accent"
+                        )}
+                      >
+                        Afternoon (2nd half)
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
 
               {/* Reason */}
@@ -551,8 +700,21 @@ export default function DashboardPage() {
                 />
               </div>
             </div>
+            {/* Error display */}
+            {wfhAction.error && (
+              <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 space-y-1 mb-2">
+                <p className="text-sm font-medium text-destructive">{wfhAction.error}</p>
+                {wfhAction.errors.length > 1 && (
+                  <ul className="text-xs text-destructive/80 list-disc pl-4 space-y-0.5">
+                    {wfhAction.errors.slice(1).map((e, i) => (
+                      <li key={i}>{e}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
             <DialogFooter>
-              <Button variant="outline" onClick={() => setWfhDialogOpen(false)}>
+              <Button variant="outline" onClick={() => { setWfhDialogOpen(false); wfhAction.clearErrors(); }}>
                 Cancel
               </Button>
               <Button onClick={handleWfhSubmit} disabled={wfhAction.loading}>
@@ -562,6 +724,74 @@ export default function DashboardPage() {
           </DialogContent>
         </Dialog>
       </PageHeader>
+
+      {/* Team Status — admin/manager only */}
+      {isAdminOrManager && teamToday && (
+        <div className="mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+            <Card className="p-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                  <Users className="h-3.5 w-3.5" />
+                </div>
+                <div>
+                  <p className="text-lg font-bold tabular-nums">{teamToday.totalActive}</p>
+                  <p className="text-[11px] text-muted-foreground">Total</p>
+                </div>
+              </div>
+            </Card>
+            <Card className="p-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600">
+                  <Building2 className="h-3.5 w-3.5" />
+                </div>
+                <div>
+                  <p className="text-lg font-bold tabular-nums">{teamToday.inOffice}</p>
+                  <p className="text-[11px] text-muted-foreground">In office</p>
+                </div>
+              </div>
+            </Card>
+            <Card className="p-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 rounded-lg bg-amber-50 text-amber-600">
+                  <Plane className="h-3.5 w-3.5" />
+                </div>
+                <div>
+                  <p className="text-lg font-bold tabular-nums">{teamToday.onLeave.length}</p>
+                  <p className="text-[11px] text-muted-foreground">On leave</p>
+                </div>
+              </div>
+            </Card>
+            <Card className="p-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <Home className="h-3.5 w-3.5" />
+                </div>
+                <div>
+                  <p className="text-lg font-bold tabular-nums">{teamToday.onWFH.length}</p>
+                  <p className="text-[11px] text-muted-foreground">WFH</p>
+                </div>
+              </div>
+            </Card>
+          </div>
+          {(teamToday.onLeave.length > 0 || teamToday.onWFH.length > 0) && (
+            <div className="flex flex-wrap gap-2">
+              {teamToday.onLeave.map((p) => (
+                <div key={p._id} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-xs">
+                  <span className="font-medium">{p.name?.split(" ")[0]}</span>
+                  <span className="text-amber-600 capitalize">{p.leaveType}</span>
+                </div>
+              ))}
+              {teamToday.onWFH.map((p) => (
+                <div key={p._id} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 text-xs">
+                  <span className="font-medium">{p.name?.split(" ")[0]}</span>
+                  <span className="text-blue-600">WFH</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Leave Balance Cards */}
       {balances.length === 0 && !loadingLeave ? (
@@ -737,6 +967,11 @@ export default function DashboardPage() {
                           ? format(new Date(request.date), "MMM d, yyyy")
                           : ""}
                       </p>
+                      {request.status === "rejected" && request.managerComment && (
+                        <p className="text-xs text-destructive mt-0.5">
+                          Reason: {request.managerComment}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -749,7 +984,7 @@ export default function DashboardPage() {
                     >
                       {request.status}
                     </Badge>
-                    {request.status === "pending" && (
+                    {(request.status === "pending" || request.status === "approved") && (
                       <Button
                         variant="ghost"
                         size="icon"

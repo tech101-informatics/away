@@ -7,10 +7,11 @@ import WFHRequest from "@/models/WFHRequest";
 import User from "@/models/User";
 import { WFHRequestSchema } from "@/lib/schemas/leave.schema";
 import { validateWFHRequest } from "@/lib/validators/wfh-validator";
-import { sendAdminChannelMessage, buildWFHRequestMessage } from "@/lib/slack";
+import { getSlackClient } from "@/lib/slack-client";
+import { buildWFHRequestBlocks } from "@/lib/slack-blocks";
 import { format, parseISO, subDays, addDays } from "date-fns";
 
-export async function GET() {
+export async function GET(req: Request) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -18,8 +19,14 @@ export async function GET() {
 
   await connectDB();
 
+  const { searchParams } = new URL(req.url);
+  const self = searchParams.get("self");
+
   let filter: Record<string, unknown> = {};
-  if (session.user.role === "employee") {
+
+  if (self === "true") {
+    filter = { employeeId: session.user.id };
+  } else if (session.user.role === "employee") {
     filter = { employeeId: session.user.id };
   } else if (session.user.role === "manager") {
     filter = {
@@ -57,8 +64,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  if (!user.managerId) {
-    return NextResponse.json({ error: "No manager assigned. Please contact admin." }, { status: 400 });
+  // If no manager assigned, fall back to any admin
+  let approverId = user.managerId;
+  if (!approverId) {
+    const admin = await User.findOne({ role: "admin", isActive: true }).lean();
+    approverId = admin ? (admin as Record<string, unknown>)._id : null;
   }
 
   // Check for duplicate date
@@ -114,7 +124,7 @@ export async function POST(req: Request) {
 
   const wfhRequest = await WFHRequest.create({
     employeeId: session.user.id,
-    managerId: user.managerId,
+    managerId: approverId || undefined,
     date: parsed.data.date,
     isHalfDay: parsed.data.isHalfDay,
     halfDayPeriod: parsed.data.halfDayPeriod,
@@ -125,15 +135,48 @@ export async function POST(req: Request) {
     policyWarnings: validation.warnings,
   });
 
-  // Notify admin channel
-  sendAdminChannelMessage(
-    buildWFHRequestMessage({
-      employeeName: user.name,
-      date: format(requestDate, "MMM d, yyyy"),
-      reason: parsed.data.reason,
-      quotaExceeded: validation.quotaExceeded,
-    })
+  // Send interactive Slack messages
+  const wfhBal = user.leaveBalances?.find(
+    (b: { leaveType: string }) => b.leaveType === "wfh"
   );
+
+  const slackMsg = buildWFHRequestBlocks({
+    employeeName: user.name,
+    date: format(requestDate, "MMM d, yyyy"),
+    reason: parsed.data.reason,
+    remainingBalance: wfhBal?.remaining ?? 0,
+    wfhRequestId: wfhRequest._id.toString(),
+    quotaExceeded: validation.quotaExceeded,
+    awayUrl: process.env.NEXT_PUBLIC_APP_URL || "https://away.storepecker.com",
+  });
+
+  (async () => {
+    try {
+      const slack = getSlackClient();
+
+      if (process.env.SLACK_ADMIN_CHANNEL_ID) {
+        await slack.chat.postMessage({
+          channel: process.env.SLACK_ADMIN_CHANNEL_ID,
+          text: slackMsg.text,
+          blocks: slackMsg.blocks as never[],
+        });
+      }
+
+      if (approverId) {
+        const mgr = await User.findById(approverId).lean();
+        const mgrData = mgr as Record<string, unknown> | null;
+        if (mgrData?.isSlackLinked && mgrData?.slackUserId) {
+          await slack.chat.postMessage({
+            channel: mgrData.slackUserId as string,
+            text: slackMsg.text,
+            blocks: slackMsg.blocks as never[],
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Slack notification failed:", err);
+    }
+  })();
 
   return NextResponse.json(
     {

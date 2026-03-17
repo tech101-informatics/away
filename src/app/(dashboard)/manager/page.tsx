@@ -9,7 +9,8 @@ import {
   Plane,
   Home,
   MessageSquare,
-
+  Users,
+  Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -76,6 +77,13 @@ interface WFHRequestData {
   createdAt: string;
 }
 
+interface TeamTodayData {
+  totalActive: number;
+  inOffice: number;
+  onLeave: Array<{ _id: string; name: string; image?: string; leaveType?: string; isHalfDay?: boolean }>;
+  onWFH: Array<{ _id: string; name: string; image?: string; isHalfDay?: boolean }>;
+}
+
 export default function ManagerPage() {
   const [actionDialog, setActionDialog] = useState<{
     type: "leave" | "wfh";
@@ -96,6 +104,8 @@ export default function ManagerPage() {
     loading: loadingWfh,
     refetch: refetchWfh,
   } = useFetch<WFHRequestData[]>("/api/wfh-requests");
+
+  const { data: teamToday } = useFetch<TeamTodayData>("/api/team/today");
 
   const managerAction = useAction({
     onSuccess: () => {
@@ -142,6 +152,89 @@ export default function ManagerPage() {
           </Badge>
         )}
       </PageHeader>
+
+      {/* Team Status Today */}
+      {teamToday && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          <Card className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                <Users className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold tabular-nums">{teamToday.totalActive}</p>
+                <p className="text-xs text-muted-foreground">Total team</p>
+              </div>
+            </div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600">
+                <Building2 className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold tabular-nums">{teamToday.inOffice}</p>
+                <p className="text-xs text-muted-foreground">In office</p>
+              </div>
+            </div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-amber-50 text-amber-600">
+                <Plane className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold tabular-nums">{teamToday.onLeave.length}</p>
+                <p className="text-xs text-muted-foreground">On leave</p>
+              </div>
+            </div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-blue-50 text-blue-600">
+                <Home className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold tabular-nums">{teamToday.onWFH.length}</p>
+                <p className="text-xs text-muted-foreground">WFH today</p>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Who's Away */}
+      {teamToday && (teamToday.onLeave.length > 0 || teamToday.onWFH.length > 0) && (
+        <Card className="mb-6">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Who&apos;s away today</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-3">
+              {teamToday.onLeave.map((person) => (
+                <div key={person._id} className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 text-sm">
+                  <Avatar className="h-6 w-6">
+                    <AvatarImage src={person.image} />
+                    <AvatarFallback className="text-[10px]">{person.name?.split(" ").map((n) => n[0]).join("")}</AvatarFallback>
+                  </Avatar>
+                  <span className="font-medium">{person.name?.split(" ")[0]}</span>
+                  <span className="text-xs text-amber-600 capitalize">{person.leaveType}{person.isHalfDay ? " (half)" : ""}</span>
+                </div>
+              ))}
+              {teamToday.onWFH.map((person) => (
+                <div key={person._id} className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 text-sm">
+                  <Avatar className="h-6 w-6">
+                    <AvatarImage src={person.image} />
+                    <AvatarFallback className="text-[10px]">{person.name?.split(" ").map((n) => n[0]).join("")}</AvatarFallback>
+                  </Avatar>
+                  <span className="font-medium">{person.name?.split(" ")[0]}</span>
+                  <span className="text-xs text-blue-600">WFH{person.isHalfDay ? " (half)" : ""}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Tabs defaultValue="leave" className="space-y-6">
         <TabsList>

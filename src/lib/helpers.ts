@@ -41,6 +41,7 @@ export function formatDateRange(startDate: string, endDate: string): string {
 export const leaveTypeLabels: Record<string, string> = {
   casual: "Casual Leave",
   sick: "Sick Leave",
+  personal: "Personal Leave",
   wfh: "Work From Home",
   optional: "Optional Holiday",
   unpaid: "Unpaid Leave",
@@ -49,6 +50,7 @@ export const leaveTypeLabels: Record<string, string> = {
 export const leaveTypeColors: Record<string, string> = {
   casual: "bg-emerald-100 text-emerald-700",
   sick: "bg-rose-100 text-rose-700",
+  personal: "bg-violet-100 text-violet-700",
   wfh: "bg-blue-100 text-blue-700",
   optional: "bg-amber-100 text-amber-700",
   unpaid: "bg-gray-100 text-gray-700",

@@ -5,9 +5,25 @@ import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 
-export async function GET() {
+export async function GET(req: Request) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "admin" && session.user.role !== "manager") {
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(req.url);
+
+  // Self-user query — any authenticated user can fetch their own data
+  if (searchParams.get("self") === "true") {
+    await connectDB();
+    const user = await User.findById(session.user.id)
+      .populate("managerId", "name email")
+      .lean();
+    return NextResponse.json(user);
+  }
+
+  // Admin/manager only — list all users
+  if (session.user.role !== "admin" && session.user.role !== "manager") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 

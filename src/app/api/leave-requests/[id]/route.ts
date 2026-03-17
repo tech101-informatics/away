@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/db";
 import LeaveRequest from "@/models/LeaveRequest";
 import User from "@/models/User";
-import { notifyEmployee, buildStatusUpdateMessage } from "@/lib/slack";
+import { notifyEmployee, buildStatusUpdateMessage, sendAdminChannelMessage } from "@/lib/slack";
 import { formatDateRange } from "@/lib/helpers";
 import { format } from "date-fns";
 
@@ -27,18 +27,58 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     if (leaveRequest.employeeId.toString() !== session.user.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
-    if (leaveRequest.status !== "pending") {
-      return NextResponse.json({ error: "Can only cancel pending requests" }, { status: 400 });
+    if (leaveRequest.status !== "pending" && leaveRequest.status !== "approved") {
+      return NextResponse.json({ error: "Can only cancel pending or approved requests" }, { status: 400 });
     }
+
+    const wasApproved = leaveRequest.status === "approved";
     leaveRequest.status = "cancelled";
     await leaveRequest.save();
+
+    // If was approved, restore leave balance
+    if (wasApproved) {
+      await User.findOneAndUpdate(
+        {
+          _id: leaveRequest.employeeId,
+          "leaveBalances.leaveType": leaveRequest.leaveType,
+        },
+        {
+          $inc: {
+            "leaveBalances.$.used": -leaveRequest.numberOfDays,
+            "leaveBalances.$.remaining": leaveRequest.numberOfDays,
+          },
+        }
+      );
+    }
+
+    // Notify admin channel
+    const employee = await User.findById(leaveRequest.employeeId);
+    if (employee) {
+      const dates = formatDateRange(
+        format(leaveRequest.startDate, "yyyy-MM-dd"),
+        format(leaveRequest.endDate, "yyyy-MM-dd")
+      );
+      sendAdminChannelMessage({
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `:no_entry_sign: *Leave Cancelled*\n*${employee.name}* cancelled their ${leaveRequest.leaveType} leave (${dates})${wasApproved ? " — balance restored" : ""}`,
+            },
+          },
+        ],
+        fallbackText: `${employee.name} cancelled their leave request`,
+      });
+    }
+
     return NextResponse.json(leaveRequest);
   }
 
   // Manager approving/rejecting
   if (
     session.user.role !== "admin" &&
-    leaveRequest.managerId.toString() !== session.user.id
+    leaveRequest.managerId?.toString() !== session.user.id
   ) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }

@@ -105,15 +105,19 @@ export default function CalendarPage() {
     (holidays?.holidays || []).forEach((h) => {
       const dateStr = format(new Date(h.date), "yyyy-MM-dd");
       const pillColors: Record<string, string> = {
-        national: "bg-rose-500 text-white",
+        national: "bg-indigo-500 text-white",
         company: "bg-orange-500 text-white",
-        optional: "bg-yellow-400 text-yellow-900",
+        optional: "bg-teal-500 text-white",
       };
+      // Optional holidays get a distinct color regardless of their base type
+      const pill = h.isOptional
+        ? "bg-teal-500 text-white"
+        : pillColors[h.type] || "bg-gray-400 text-white";
       addEvent(dateStr, {
         type: "holiday",
-        label: h.name,
-        color: "bg-rose-500",
-        pillColor: pillColors[h.type] || "bg-gray-400 text-white",
+        label: h.isOptional ? `${h.name} ✦` : h.name,
+        color: h.isOptional ? "bg-teal-500" : "bg-indigo-500",
+        pillColor: pill,
       });
     });
 
@@ -172,7 +176,7 @@ export default function CalendarPage() {
       {/* Legend */}
       <div className="flex flex-wrap gap-3 mb-6">
         <div className="flex items-center gap-1.5 text-sm">
-          <div className="w-3 h-3 rounded-full shrink-0 bg-rose-500" />
+          <div className="w-3 h-3 rounded-full shrink-0 bg-indigo-500" />
           <span className="text-muted-foreground">National</span>
         </div>
         <div className="flex items-center gap-1.5 text-sm">
@@ -180,7 +184,7 @@ export default function CalendarPage() {
           <span className="text-muted-foreground">Company</span>
         </div>
         <div className="flex items-center gap-1.5 text-sm">
-          <div className="w-3 h-3 rounded-full shrink-0 bg-yellow-500" />
+          <div className="w-3 h-3 rounded-full shrink-0 bg-teal-500" />
           <span className="text-muted-foreground">Optional</span>
         </div>
         <div className="flex items-center gap-1.5 text-sm">
@@ -251,7 +255,7 @@ export default function CalendarPage() {
                     "min-h-[72px] sm:min-h-[100px] p-1.5 bg-card transition-colors",
                     !isCurrentMonth && "opacity-40",
                     weekend && "bg-muted/40",
-                    hasHoliday && "bg-rose-50/70",
+                    hasHoliday && "bg-indigo-50/60",
                     isToday && "ring-2 ring-primary/50 ring-inset bg-primary/[0.03]"
                   )}
                 >
@@ -261,7 +265,7 @@ export default function CalendarPage() {
                       isToday
                         ? "bg-primary text-primary-foreground w-6 h-6 rounded-full flex items-center justify-center"
                         : hasHoliday
-                        ? "text-rose-600 font-semibold"
+                        ? "text-indigo-600 font-semibold"
                         : "text-muted-foreground"
                     )}
                   >
@@ -274,7 +278,7 @@ export default function CalendarPage() {
                         key={`h-${j}`}
                         className={cn(
                           "rounded px-1 py-0.5 text-[10px] sm:text-[11px] font-semibold leading-tight truncate",
-                          event.pillColor || "bg-rose-500 text-white"
+                          event.pillColor || "bg-indigo-500 text-white"
                         )}
                         title={event.label}
                       >

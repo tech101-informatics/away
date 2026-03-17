@@ -33,6 +33,7 @@ export function DatePicker({ date, onSelect, placeholder = "Pick a date", disabl
         <Calendar
           mode="single"
           selected={date}
+          defaultMonth={date}
           onSelect={onSelect}
           disabled={disabled}
           initialFocus

@@ -2,9 +2,72 @@
 
 import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { DayPicker } from "react-day-picker";
+import { DayPicker, CaptionProps, useNavigation } from "react-day-picker";
+import { setMonth, setYear } from "date-fns";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+function CustomCaption({ displayMonth }: CaptionProps) {
+  const { goToMonth } = useNavigation();
+  const currentYear = displayMonth.getFullYear();
+  const currentMonth = displayMonth.getMonth();
+
+  // Year range: 10 years back, 5 years forward
+  const thisYear = new Date().getFullYear();
+  const years = Array.from({ length: 16 }, (_, i) => thisYear - 10 + i);
+
+  return (
+    <div className="flex items-center justify-between px-1">
+      <button
+        type="button"
+        onClick={() => goToMonth(setMonth(displayMonth, currentMonth - 1))}
+        className={cn(
+          buttonVariants({ variant: "outline" }),
+          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100"
+        )}
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </button>
+
+      <div className="flex items-center gap-1">
+        <select
+          value={currentMonth}
+          onChange={(e) => goToMonth(setMonth(displayMonth, parseInt(e.target.value)))}
+          className="text-sm font-medium bg-transparent border-none cursor-pointer focus:outline-none focus:ring-0 pr-1"
+        >
+          {MONTHS.map((month, i) => (
+            <option key={month} value={i}>{month}</option>
+          ))}
+        </select>
+        <select
+          value={currentYear}
+          onChange={(e) => goToMonth(setYear(displayMonth, parseInt(e.target.value)))}
+          className="text-sm font-medium bg-transparent border-none cursor-pointer focus:outline-none focus:ring-0"
+        >
+          {years.map((year) => (
+            <option key={year} value={year}>{year}</option>
+          ))}
+        </select>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => goToMonth(setMonth(displayMonth, currentMonth + 1))}
+        className={cn(
+          buttonVariants({ variant: "outline" }),
+          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100"
+        )}
+      >
+        <ChevronRight className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
@@ -46,8 +109,7 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         ...classNames,
       }}
       components={{
-        IconLeft: () => <ChevronLeft className="h-4 w-4" />,
-        IconRight: () => <ChevronRight className="h-4 w-4" />,
+        Caption: CustomCaption,
       }}
       {...props}
     />

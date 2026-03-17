@@ -18,7 +18,7 @@ export function LoadingCards({ count = 4 }: { count?: number }) {
 
 export function LoadingTable({ rows = 5 }: { rows?: number }) {
   return (
-    <div role="status" aria-label="Loading">
+    <div role="status" aria-label="Loading" className="mb-4">
       <div className="space-y-3">
         {Array.from({ length: rows }).map((_, i) => (
           <div key={i} className="flex items-center gap-4 p-4 rounded-lg border">

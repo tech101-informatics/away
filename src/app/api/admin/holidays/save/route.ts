@@ -30,7 +30,7 @@ export async function POST(req: Request) {
       name: h.name,
       date: new Date(h.date),
       type: h.type,
-      isOptional: h.type === "optional",
+      isOptional: h.isOptional || h.type === "optional",
     }));
 
     const calendar = await HolidayCalendar.findOneAndUpdate(

@@ -99,6 +99,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           token.slackUserId = u.slackUserId as string | undefined;
           token.isActive = u.isActive as boolean;
           token.isApproved = u.isApproved as boolean;
+          // Use Google image, fall back to Slack avatar
+          if (!token.picture && u.slackAvatar) {
+            token.picture = u.slackAvatar as string;
+          }
+          if (!token.name && u.slackDisplayName) {
+            token.name = u.slackDisplayName as string;
+          }
         }
       }
       return token;
@@ -112,6 +119,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         u.slackUserId = token.slackUserId as string;
         u.isActive = token.isActive as boolean;
         u.isApproved = token.isApproved as boolean;
+        // Ensure image falls back to Slack avatar
+        if (!u.image && token.picture) {
+          u.image = token.picture;
+        }
       }
       return session;
     },

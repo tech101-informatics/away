@@ -59,14 +59,59 @@ function PopoverContent({ className, align = "start", sideOffset = 4, children, 
 
   React.useEffect(() => setMounted(true), []);
 
+  // Position: measure space above/below trigger, flip if needed
   React.useEffect(() => {
-    if (open && triggerRef.current) {
-      const rect = triggerRef.current.getBoundingClientRect();
-      let left = rect.left;
-      if (align === "end") left = rect.right;
-      else if (align === "center") left = rect.left + rect.width / 2;
-      setPos({ top: rect.bottom + sideOffset, left });
-    }
+    if (!open || !triggerRef.current) return;
+
+    const position = () => {
+      const triggerRect = triggerRef.current!.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+
+      // Estimate popover height (calendar is ~340px, fallback 300)
+      const contentEl = ref.current;
+      const popoverHeight = contentEl ? contentEl.offsetHeight : 340;
+
+      const spaceBelow = viewportHeight - triggerRect.bottom - sideOffset;
+      const spaceAbove = triggerRect.top - sideOffset;
+
+      let top: number;
+      if (spaceBelow >= popoverHeight || spaceBelow >= spaceAbove) {
+        // Open below
+        top = triggerRect.bottom + sideOffset;
+      } else {
+        // Open above
+        top = triggerRect.top - sideOffset - popoverHeight;
+      }
+
+      // Clamp to viewport
+      top = Math.max(8, Math.min(top, viewportHeight - popoverHeight - 8));
+
+      let left = triggerRect.left;
+      if (align === "end") left = triggerRect.right;
+      else if (align === "center") left = triggerRect.left + triggerRect.width / 2;
+
+      // Prevent horizontal overflow
+      const viewportWidth = window.innerWidth;
+      if (contentEl) {
+        const popoverWidth = contentEl.offsetWidth;
+        if (left + popoverWidth > viewportWidth - 8) {
+          left = viewportWidth - popoverWidth - 8;
+        }
+      }
+      left = Math.max(8, left);
+
+      setPos({ top, left });
+    };
+
+    // Position on next frame so ref.current has dimensions
+    requestAnimationFrame(position);
+    // Reposition on scroll/resize
+    window.addEventListener("scroll", position, true);
+    window.addEventListener("resize", position);
+    return () => {
+      window.removeEventListener("scroll", position, true);
+      window.removeEventListener("resize", position);
+    };
   }, [open, triggerRef, align, sideOffset]);
 
   React.useEffect(() => {
@@ -94,7 +139,7 @@ function PopoverContent({ className, align = "start", sideOffset = 4, children, 
       ref={ref}
       style={{ position: "fixed", top: pos.top, left: pos.left, zIndex: 50 }}
       className={cn(
-        "w-72 rounded-lg border bg-popover p-4 text-popover-foreground shadow-md outline-none animate-in fade-in-0 zoom-in-95",
+        "w-auto rounded-lg border bg-popover p-4 text-popover-foreground shadow-md outline-none animate-in fade-in-0 zoom-in-95",
         className
       )}
       {...props}

@@ -54,7 +54,7 @@ const LeaveBalanceSchema = new Schema<ILeaveBalance>(
   {
     leaveType: {
       type: String,
-      enum: ["casual", "sick", "wfh", "optional", "unpaid"],
+      enum: ["casual", "sick", "personal", "wfh", "optional", "unpaid"],
       required: true,
     },
     allocated: { type: Number, default: 0 },

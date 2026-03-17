@@ -151,12 +151,13 @@ function SelectContent({ className, children, ...props }: React.HTMLAttributes<H
   );
 }
 
-function SelectItem({ value: itemValue, children, className, disabled, ...props }: { value: string; children: React.ReactNode; className?: string; disabled?: boolean }) {
+function SelectItem({ value: itemValue, label: explicitLabel, children, className, disabled, ...props }: { value: string; label?: string; children: React.ReactNode; className?: string; disabled?: boolean }) {
   const { value, onValueChange, setOpen, registerLabel } = React.useContext(SelectContext);
   const isSelected = value === itemValue;
 
   // Extract text content from children for label registration
   const textContent = React.useMemo(() => {
+    if (explicitLabel) return explicitLabel;
     const extractText = (node: React.ReactNode): string => {
       if (typeof node === "string") return node;
       if (typeof node === "number") return String(node);
@@ -167,7 +168,7 @@ function SelectItem({ value: itemValue, children, className, disabled, ...props 
       return "";
     };
     return extractText(children);
-  }, [children]);
+  }, [children, explicitLabel]);
 
   React.useEffect(() => {
     registerLabel(itemValue, textContent);
@@ -180,7 +181,7 @@ function SelectItem({ value: itemValue, children, className, disabled, ...props 
       aria-selected={isSelected}
       disabled={disabled}
       className={cn(
-        "relative flex w-full cursor-default select-none items-center rounded-md py-1.5 pl-8 pr-2 text-sm outline-none text-left",
+        "relative flex w-full cursor-default select-none items-center rounded-md py-1.5 pl-8 pr-2 text-sm outline-none text-left group",
         "hover:bg-accent hover:text-accent-foreground focus:bg-accent",
         "disabled:pointer-events-none disabled:opacity-50",
         className
@@ -191,8 +192,8 @@ function SelectItem({ value: itemValue, children, className, disabled, ...props 
       }}
       {...props}
     >
-      <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
-        {isSelected && <Check className="h-4 w-4" />}
+      <span className={cn("absolute left-2 flex h-3.5 w-3.5 items-center justify-center group-hover:text-primary", isSelected ? 'text-primary': 'text-gray-200')}>
+         <Check className="h-4 w-4" />
       </span>
       {children}
     </button>

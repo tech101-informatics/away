@@ -3,6 +3,7 @@ import { z } from "zod";
 export const policyLeaveTypes = [
   "casual",
   "sick",
+  "personal",
   "wfh",
   "optional",
   "unpaid",
@@ -13,7 +14,7 @@ export type PolicyLeaveType = (typeof policyLeaveTypes)[number];
 export const halfDayPeriods = ["morning", "afternoon"] as const;
 
 export const LeaveRequestSchema = z.object({
-  leaveType: z.enum(["casual", "sick", "optional", "unpaid"]),
+  leaveType: z.enum(["casual", "sick", "personal", "optional", "unpaid"]),
   startDate: z.string().min(1, "Start date is required"),
   endDate: z.string().min(1, "End date is required"),
   isHalfDay: z.boolean().default(false),

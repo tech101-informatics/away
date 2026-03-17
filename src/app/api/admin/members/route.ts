@@ -48,7 +48,8 @@ export async function POST(req: Request) {
 
   const data = parsed.data;
   const allowedDomain = process.env.ALLOWED_EMAIL_DOMAIN || "storepecker.me";
-  const isSlackEmailMatch = data.slackEmail.endsWith(`@${allowedDomain}`);
+  const hasSlack = !!data.slackEmail;
+  const isSlackEmailMatch = hasSlack && data.slackEmail.endsWith(`@${allowedDomain}`);
 
   let loginEmail: string;
   let isSlackLinked: boolean;
@@ -59,7 +60,7 @@ export async function POST(req: Request) {
   } else {
     if (!data.workEmail) {
       return NextResponse.json(
-        { error: `Work email (@${allowedDomain}) is required when Slack email differs` },
+        { error: `Work email (@${allowedDomain}) is required` },
         { status: 400 }
       );
     }

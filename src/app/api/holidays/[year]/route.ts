@@ -37,7 +37,7 @@ export async function POST(req: Request, { params }: { params: { year: string } 
   if (body.holiday) {
     calendar.holidays.push({
       ...body.holiday,
-      isOptional: body.holiday.type === "optional",
+      isOptional: body.holiday.isOptional || body.holiday.type === "optional",
     });
     await calendar.save();
   }
@@ -84,6 +84,10 @@ export async function PATCH(req: Request, { params }: { params: { year: string }
     if (body.date) holiday.date = body.date;
     if (body.type) {
       holiday.type = body.type;
+    }
+    if (body.isOptional !== undefined) {
+      holiday.isOptional = body.isOptional;
+    } else if (body.type) {
       holiday.isOptional = body.type === "optional";
     }
     await calendar.save();

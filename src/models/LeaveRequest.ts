@@ -3,7 +3,7 @@ import mongoose, { Schema, Document, Types } from "mongoose";
 export interface ILeaveRequest extends Document {
   _id: Types.ObjectId;
   employeeId: Types.ObjectId;
-  managerId: Types.ObjectId;
+  managerId?: Types.ObjectId;
   leaveType: string;
   startDate: Date;
   endDate: Date;
@@ -15,6 +15,14 @@ export interface ILeaveRequest extends Document {
   status: "pending" | "approved" | "rejected" | "cancelled";
   managerComment?: string;
   policyWarnings?: string[];
+  source: "manual" | "import";
+  originalType?: string;
+  submittedOn?: string;
+  importedBy?: Types.ObjectId;
+  importedAt?: Date;
+  adminChannelMessageTs?: string;
+  managerDMChannelId?: string;
+  managerDMMessageTs?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -22,10 +30,10 @@ export interface ILeaveRequest extends Document {
 const LeaveRequestSchema = new Schema<ILeaveRequest>(
   {
     employeeId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    managerId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    managerId: { type: Schema.Types.ObjectId, ref: "User" },
     leaveType: {
       type: String,
-      enum: ["casual", "sick", "optional", "unpaid"],
+      enum: ["casual", "sick", "personal", "optional", "unpaid", "annual", "wfh"],
       required: true,
     },
     startDate: { type: Date, required: true },
@@ -42,12 +50,25 @@ const LeaveRequestSchema = new Schema<ILeaveRequest>(
     },
     managerComment: { type: String },
     policyWarnings: [{ type: String }],
+    source: { type: String, enum: ["manual", "import"], default: "manual" },
+    originalType: { type: String, default: null },
+    submittedOn: { type: String, default: null },
+    importedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
+    importedAt: { type: Date, default: null },
+    adminChannelMessageTs: { type: String, default: null },
+    managerDMChannelId: { type: String, default: null },
+    managerDMMessageTs: { type: String, default: null },
   },
   { timestamps: true }
 );
 
 LeaveRequestSchema.index({ employeeId: 1, status: 1 });
 LeaveRequestSchema.index({ managerId: 1, status: 1 });
+LeaveRequestSchema.index({ employeeId: 1, startDate: 1, source: 1 });
 
-export default mongoose.models.LeaveRequest ||
-  mongoose.model<ILeaveRequest>("LeaveRequest", LeaveRequestSchema);
+// Force schema refresh — delete stale cached model in dev
+if (mongoose.models.LeaveRequest) {
+  delete (mongoose.models as Record<string, unknown>).LeaveRequest;
+}
+
+export default mongoose.model<ILeaveRequest>("LeaveRequest", LeaveRequestSchema);

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import {
-  Users,
   FileText,
   Home,
   CalendarDays,
@@ -12,9 +11,6 @@ import {
   Trash2,
   Download,
   Save,
-  Shield,
-  UserCog,
-  User as UserIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -28,7 +24,6 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -46,7 +41,6 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 import { PageHeader } from "@/components/away/page-header";
 import { DatePicker } from "@/components/away/date-picker";
@@ -55,15 +49,6 @@ import { useFetch } from "@/hooks/use-fetch";
 import { useAction } from "@/hooks/use-action";
 import { leaveTypeLabels } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
-
-interface UserData {
-  _id: string;
-  name: string;
-  email: string;
-  image?: string;
-  role: string;
-  managerId?: { _id: string; name: string; email: string };
-}
 
 interface LeavePolicyData {
   _id: string;
@@ -97,17 +82,10 @@ export default function AdminPage() {
   const [selectedYear, setSelectedYear] = useState(currentYear);
 
   // Data fetching
-  const { data: users, loading: loadingUsers, refetch: refetchUsers } =
-    useFetch<UserData[]>("/api/users");
   const { data: leavePolicies, loading: loadingPolicies, refetch: refetchPolicies } =
     useFetch<LeavePolicyData[]>("/api/leave-policy");
   const { data: holidays, refetch: refetchHolidays } =
     useFetch<HolidayCalendarData>(`/api/holidays/${selectedYear}`);
-
-  // User management state
-  const [editingUser, setEditingUser] = useState<UserData | null>(null);
-  const [editRole, setEditRole] = useState("");
-  const [editManager, setEditManager] = useState("");
 
   // Leave policy state
   const [newPolicyOpen, setNewPolicyOpen] = useState(false);
@@ -139,10 +117,6 @@ export default function AdminPage() {
   }
 
   // Actions
-  const userAction = useAction({
-    successMessage: "User updated!",
-    onSuccess: () => { setEditingUser(null); refetchUsers(); },
-  });
   const policyAction = useAction({
     successMessage: "Policy saved!",
     onSuccess: () => { setNewPolicyOpen(false); resetPolicyForm(); refetchPolicies(); },
@@ -180,7 +154,7 @@ export default function AdminPage() {
     const payload = {
       leaveType: "wfh",
       label: "Work From Home",
-      allocatedDays: parseInt(wfhYearly) || 6,
+      allocatedDays: parseFloat(wfhYearly) || 6,
       carryForward: false,
       isActive: true,
       allowHalfDay: true,
@@ -206,18 +180,6 @@ export default function AdminPage() {
     }
   };
 
-  const handleUserUpdate = () => {
-    if (!editingUser) return;
-    userAction.execute("/api/users", {
-      method: "PATCH",
-      body: JSON.stringify({
-        userId: editingUser._id,
-        role: editRole || undefined,
-        managerId: editManager || null,
-      }),
-    });
-  };
-
   const handleCreatePolicy = () => {
     if (!newPolicyType || !newPolicyDays) {
       toast.error("Fill all fields");
@@ -228,7 +190,7 @@ export default function AdminPage() {
       body: JSON.stringify({
         leaveType: newPolicyType,
         label: leaveTypeLabels[newPolicyType] || newPolicyType,
-        allocatedDays: parseInt(newPolicyDays),
+        allocatedDays: parseFloat(newPolicyDays) || 0,
         carryForward: newPolicyCarry,
         isActive: true,
         allowHalfDay: true,
@@ -278,22 +240,8 @@ export default function AdminPage() {
     window.open("/api/reports/leave-summary", "_blank");
   };
 
-  const managers = (users || []).filter((u) => u.role === "manager" || u.role === "admin");
-
-  const roleIcons: Record<string, React.ReactNode> = {
-    admin: <Shield className="h-3.5 w-3.5" />,
-    manager: <UserCog className="h-3.5 w-3.5" />,
-    employee: <UserIcon className="h-3.5 w-3.5" />,
-  };
-
-  const roleColors: Record<string, string> = {
-    admin: "bg-violet-100 text-violet-700",
-    manager: "bg-blue-100 text-blue-700",
-    employee: "bg-gray-100 text-gray-600",
-  };
-
   const holidayTypeColors: Record<string, string> = {
-    national: "bg-rose-100 text-rose-700",
+    national: "bg-indigo-100 text-indigo-700",
     company: "bg-orange-100 text-orange-700",
     optional: "bg-yellow-100 text-yellow-700",
   };
@@ -302,11 +250,8 @@ export default function AdminPage() {
     <div>
       <PageHeader title="Admin Panel" description="Manage users, policies, and holidays." />
 
-      <Tabs defaultValue="users" className="space-y-6">
+      <Tabs defaultValue="leave-policy" className="space-y-6">
         <TabsList className="flex-wrap">
-          <TabsTrigger value="users" className="gap-2">
-            <Users className="h-4 w-4" /> Users
-          </TabsTrigger>
           <TabsTrigger value="leave-policy" className="gap-2">
             <FileText className="h-4 w-4" /> Leave Policy
           </TabsTrigger>
@@ -320,70 +265,6 @@ export default function AdminPage() {
             <BarChart3 className="h-4 w-4" /> Reports
           </TabsTrigger>
         </TabsList>
-
-        {/* Users Tab */}
-        <TabsContent value="users">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">User Management</CardTitle>
-              <CardDescription>
-                Manage roles and assign managers. {users?.length || 0} total users.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loadingUsers ? (
-                <LoadingTable rows={5} />
-              ) : (
-                <div className="space-y-2">
-                  {(users || []).map((user) => (
-                    <div
-                      key={user._id}
-                      className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/30 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9">
-                          <AvatarImage src={user.image} />
-                          <AvatarFallback className="text-xs">
-                            {user.name?.split(" ").map((n) => n[0]).join("")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="text-sm font-medium">{user.name}</p>
-                          <p className="text-xs text-muted-foreground">{user.email}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Badge
-                          className={cn("gap-1 text-[11px] capitalize", roleColors[user.role])}
-                          variant="secondary"
-                        >
-                          {roleIcons[user.role]}
-                          {user.role}
-                        </Badge>
-                        {user.managerId && (
-                          <span className="text-xs text-muted-foreground hidden sm:inline">
-                            Manager: {user.managerId.name}
-                          </span>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setEditingUser(user);
-                            setEditRole(user.role);
-                            setEditManager(user.managerId?._id || "");
-                          }}
-                        >
-                          Edit
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         {/* Leave Policy Tab */}
         <TabsContent value="leave-policy">
@@ -427,6 +308,7 @@ export default function AdminPage() {
                         onChange={(e) => setNewPolicyDays(e.target.value)}
                         min={0}
                         max={365}
+                        step={0.5}
                       />
                     </div>
                     <div className="flex items-center gap-2">
@@ -718,58 +600,6 @@ export default function AdminPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Edit User Dialog */}
-      <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
-            <DialogDescription>
-              Update role and manager for {editingUser?.name}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Role</Label>
-              <Select value={editRole} onValueChange={setEditRole}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="employee">Employee</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Manager</Label>
-              <Select value={editManager} onValueChange={setEditManager}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select manager" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No manager</SelectItem>
-                  {managers
-                    .filter((m) => m._id !== editingUser?._id)
-                    .map((m) => (
-                      <SelectItem key={m._id} value={m._id}>
-                        {m.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingUser(null)}>
-              Cancel
-            </Button>
-            <Button onClick={handleUserUpdate} disabled={userAction.loading}>
-              {userAction.loading ? "Saving..." : "Save Changes"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -11,7 +11,8 @@ export async function middleware(req: NextRequest) {
   if (
     pathname.startsWith("/login") ||
     pathname.startsWith("/auth/error") ||
-    pathname.startsWith("/api/auth")
+    pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api/slack/interactions")
   ) {
     if (pathname.startsWith("/login")) {
       const token = await getToken({ req, secret });
