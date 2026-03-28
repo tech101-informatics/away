@@ -440,37 +440,37 @@ export default function AdminMembersPage() {
       </PageHeader>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6">
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-emerald-50 text-emerald-600">
               <UserCheck className="h-4 w-4" />
             </div>
             <div>
-              <p className="text-2xl font-bold tabular-nums">{activeCount}</p>
-              <p className="text-xs text-muted-foreground">Active</p>
+              <p className="text-xl sm:text-2xl font-bold tabular-nums">{activeCount}</p>
+              <p className="text-[11px] sm:text-xs text-muted-foreground">Active</p>
             </div>
           </div>
         </Card>
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-amber-50 text-amber-600">
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-amber-50 text-amber-600">
               <MessageSquare className="h-4 w-4" />
             </div>
             <div>
-              <p className="text-2xl font-bold tabular-nums">{pendingSlack}</p>
-              <p className="text-xs text-muted-foreground">Pending Slack</p>
+              <p className="text-xl sm:text-2xl font-bold tabular-nums">{pendingSlack}</p>
+              <p className="text-[11px] sm:text-xs text-muted-foreground">Pending</p>
             </div>
           </div>
         </Card>
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-gray-100 text-gray-500">
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-gray-100 text-gray-500">
               <UserX className="h-4 w-4" />
             </div>
             <div>
-              <p className="text-2xl font-bold tabular-nums">{deactivatedCount}</p>
-              <p className="text-xs text-muted-foreground">Deactivated</p>
+              <p className="text-xl sm:text-2xl font-bold tabular-nums">{deactivatedCount}</p>
+              <p className="text-[11px] sm:text-xs text-muted-foreground">Inactive</p>
             </div>
           </div>
         </Card>
@@ -506,25 +506,47 @@ export default function AdminMembersPage() {
                 <div
                   key={member._id}
                   className={cn(
-                    "flex items-center justify-between p-4 hover:bg-muted/20 transition-colors",
+                    "p-4 hover:bg-muted/20 transition-colors",
                     !member.isActive && "opacity-50"
                   )}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <Avatar className="h-10 w-10">
+                  {/* Desktop: single row */}
+                  <div className="hidden md:flex items-center gap-3">
+                    <Avatar className="h-10 w-10 shrink-0">
                       <AvatarImage src={member.slackAvatar || member.image} />
                       <AvatarFallback className="text-xs">
                         {member.name?.split(" ").map((n) => n[0]).join("")}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="min-w-0">
+                    <div className="min-w-0 w-44 mr-auto">
                       <p className="text-sm font-medium truncate">{member.name}</p>
                       <p className="text-xs text-muted-foreground truncate">{member.email}</p>
                     </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 shrink-0">
-                    {/* Joining date */}
+                    <Select value={member.role} onValueChange={(v) => handleRoleChange(member._id, v)}>
+                      <SelectTrigger className="w-28 h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="employee">Employee</SelectItem>
+                        <SelectItem value="manager">Manager</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={member.managerId?._id || "none"}
+                      onValueChange={(v) => {
+                        roleAction.execute(`/api/admin/members/${member._id}`, {
+                          method: "PATCH",
+                          body: JSON.stringify({ managerId: v === "none" ? null : v }),
+                        });
+                      }}
+                    >
+                      <SelectTrigger className="w-32 h-8 text-xs"><SelectValue placeholder="Manager" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No manager</SelectItem>
+                        {managers.filter((m) => m._id !== member._id).map((m) => (
+                          <SelectItem key={m._id} value={m._id}>{m.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <DatePicker
                       date={member.joiningDate ? new Date(member.joiningDate) : undefined}
                       onSelect={(d) => {
@@ -535,98 +557,72 @@ export default function AdminMembersPage() {
                           });
                         }
                       }}
-                      placeholder="Set date"
+                      placeholder="Join date"
                     />
-
-                    {/* Role */}
-                    <Select
-                      value={member.role}
-                      onValueChange={(v) => handleRoleChange(member._id, v)}
-                    >
-                      <SelectTrigger className="w-28 h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="employee">Employee</SelectItem>
-                        <SelectItem value="manager">Manager</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    {/* Manager */}
-                    <Select
-                      value={member.managerId?._id || "none"}
-                      onValueChange={(v) => {
-                        roleAction.execute(`/api/admin/members/${member._id}`, {
-                          method: "PATCH",
-                          body: JSON.stringify({ managerId: v === "none" ? null : v }),
-                        });
-                      }}
-                    >
-                      <SelectTrigger className="w-32 h-8 text-xs">
-                        <SelectValue placeholder="Manager" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">No manager</SelectItem>
-                        {managers
-                          .filter((m) => m._id !== member._id)
-                          .map((m) => (
-                            <SelectItem key={m._id} value={m._id}>{m.name}</SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-
-                    {/* Slack status */}
                     {member.isSlackLinked ? (
-                      <Badge className="bg-emerald-100 text-emerald-700 text-[10px] gap-1" variant="secondary">
-                        <Check className="h-3 w-3" /> Linked
-                      </Badge>
+                      <Badge className="bg-emerald-100 text-emerald-700 text-[10px] gap-1 shrink-0" variant="secondary"><Check className="h-3 w-3" /> Linked</Badge>
                     ) : member.isActive ? (
-                      <Badge className="bg-amber-100 text-amber-700 text-[10px] gap-1" variant="secondary">
-                        <Clock className="h-3 w-3" /> Pending
-                      </Badge>
+                      <Badge className="bg-amber-100 text-amber-700 text-[10px] gap-1 shrink-0" variant="secondary"><Clock className="h-3 w-3" /> Pending</Badge>
                     ) : (
-                      <Badge className="bg-gray-100 text-gray-500 text-[10px]" variant="secondary">
-                        Inactive
-                      </Badge>
+                      <Badge className="bg-gray-100 text-gray-500 text-[10px] shrink-0" variant="secondary">Inactive</Badge>
                     )}
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button variant="ghost" size="sm" className="text-xs gap-1 h-7" onClick={() => openMemberView(member)}><Eye className="h-3 w-3" /> View</Button>
+                      <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => openLeaveEditor(member)}>Leaves</Button>
+                      {member.isActive ? (
+                        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive text-xs h-7" onClick={() => setDeactivateId(member._id)}>Deactivate</Button>
+                      ) : (
+                        <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => handleReactivate(member._id)}>Reactivate</Button>
+                      )}
+                    </div>
+                  </div>
 
-                    {/* Actions */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-xs gap-1"
-                      onClick={() => openMemberView(member)}
-                    >
-                      <Eye className="h-3 w-3" /> View
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-xs"
-                      onClick={() => openLeaveEditor(member)}
-                    >
-                      Leaves
-                    </Button>
-                    {member.isActive ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-muted-foreground hover:text-destructive text-xs"
-                        onClick={() => setDeactivateId(member._id)}
-                      >
-                        Deactivate
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-xs"
-                        onClick={() => handleReactivate(member._id)}
-                      >
-                        Reactivate
-                      </Button>
-                    )}
+                  {/* Mobile: stacked rows */}
+                  <div className="md:hidden space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Avatar className="h-10 w-10 shrink-0">
+                          <AvatarImage src={member.slackAvatar || member.image} />
+                          <AvatarFallback className="text-xs">
+                            {member.name?.split(" ").map((n) => n[0]).join("")}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{member.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{member.email}</p>
+                        </div>
+                      </div>
+                      {member.isSlackLinked ? (
+                        <Badge className="bg-emerald-100 text-emerald-700 text-[10px] gap-1 shrink-0" variant="secondary"><Check className="h-3 w-3" /> Linked</Badge>
+                      ) : member.isActive ? (
+                        <Badge className="bg-amber-100 text-amber-700 text-[10px] gap-1 shrink-0" variant="secondary"><Clock className="h-3 w-3" /> Pending</Badge>
+                      ) : (
+                        <Badge className="bg-gray-100 text-gray-500 text-[10px] shrink-0" variant="secondary">Inactive</Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Select value={member.role} onValueChange={(v) => handleRoleChange(member._id, v)}>
+                        <SelectTrigger className="w-[90px] h-7 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="employee">Employee</SelectItem>
+                          <SelectItem value="manager">Manager</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <span className="text-muted-foreground/40">|</span>
+                      <span>{member.managerId?.name ? `Mgr: ${member.managerId.name.split(" ")[0]}` : "No mgr"}</span>
+                      <span className="text-muted-foreground/40">|</span>
+                      <span>{member.joiningDate ? format(new Date(member.joiningDate), "MMM yyyy") : "No date"}</span>
+                    </div>
+                    <div className="flex items-center gap-1 -ml-2">
+                      <Button variant="ghost" size="sm" className="text-xs gap-1 h-7" onClick={() => openMemberView(member)}><Eye className="h-3 w-3" /> View</Button>
+                      <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => openLeaveEditor(member)}>Leaves</Button>
+                      {member.isActive ? (
+                        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive text-xs h-7 ml-auto" onClick={() => setDeactivateId(member._id)}>Deactivate</Button>
+                      ) : (
+                        <Button variant="ghost" size="sm" className="text-xs h-7 ml-auto" onClick={() => handleReactivate(member._id)}>Reactivate</Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -703,25 +699,25 @@ export default function AdminMembersPage() {
                         className="flex items-center justify-between w-full p-3 rounded-lg border hover:bg-accent transition-colors text-left"
                         onClick={() => { setSelectedSlack(m); setSlackSearch(""); }}
                       >
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Avatar className="h-10 w-10 shrink-0">
                             <AvatarImage src={m.slackAvatar} />
                             <AvatarFallback className="text-xs">
                               {m.slackDisplayName.split(" ").map((n) => n[0]).join("")}
                             </AvatarFallback>
                           </Avatar>
-                          <div>
-                            <p className="text-sm font-medium">{m.slackDisplayName}</p>
-                            <p className="text-xs text-muted-foreground">{m.slackEmail}</p>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">{m.slackDisplayName}</p>
+                            <p className="text-xs text-muted-foreground truncate">{m.slackEmail}</p>
                           </div>
                         </div>
                         {m.isStorepeckerEmail ? (
-                          <Badge className="bg-emerald-100 text-emerald-700 text-[10px]" variant="secondary">
-                            @storepecker.me
+                          <Badge className="bg-emerald-100 text-emerald-700 text-[10px] shrink-0 whitespace-nowrap" variant="secondary">
+                            Match
                           </Badge>
                         ) : (
-                          <Badge className="bg-amber-100 text-amber-700 text-[10px] gap-1" variant="secondary">
-                            <AlertCircle className="h-3 w-3" /> Different domain
+                          <Badge className="bg-amber-100 text-amber-700 text-[10px] shrink-0 whitespace-nowrap" variant="secondary">
+                            Other
                           </Badge>
                         )}
                       </button>
@@ -731,7 +727,7 @@ export default function AdminMembersPage() {
               )}
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-4 md:space-y-6">
               {/* Selected member info */}
               <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50">
                 <Avatar className="h-12 w-12">
@@ -970,8 +966,11 @@ export default function AdminMembersPage() {
                 <div>
                   <h2 className="text-xl font-bold tracking-tight">{viewMember?.name}</h2>
                   <p className="text-sm text-muted-foreground">{viewMember?.email}</p>
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="flex flex-wrap items-center gap-2 mt-1">
                     <Badge variant="secondary" className="text-[10px] capitalize">{viewMember?.role}</Badge>
+                    {viewMember?.managerId && (
+                      <span className="text-xs text-muted-foreground">Mgr: {viewMember.managerId.name}</span>
+                    )}
                     {viewMember?.joiningDate && (
                       <span className="text-xs text-muted-foreground">
                         Joined {format(new Date(viewMember.joiningDate), "MMM yyyy")}
@@ -980,9 +979,11 @@ export default function AdminMembersPage() {
                   </div>
                 </div>
               </div>
-              <Button size="sm" className="gap-1.5" onClick={() => setAddLeaveOpen(true)}>
-                <Plus className="h-3.5 w-3.5" /> Mark Leave
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+                <Button size="sm" className="gap-1.5" onClick={() => setAddLeaveOpen(true)}>
+                  <Plus className="h-3.5 w-3.5" /> Mark Leave
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -1016,75 +1017,42 @@ export default function AdminMembersPage() {
                 <p className="text-sm mt-1">Use &quot;Mark Leave&quot; to add a record.</p>
               </div>
             ) : (
-              <div className="border rounded-lg overflow-hidden">
-                {/* Table header */}
-                <div className="grid grid-cols-[1fr_120px_80px_80px_70px] sm:grid-cols-[1fr_140px_100px_90px_80px_80px] gap-2 px-4 py-2.5 bg-muted/50 text-xs font-medium text-muted-foreground">
-                  <span>Type</span>
-                  <span>Date</span>
-                  <span className="hidden sm:block">Duration</span>
-                  <span>Days</span>
-                  <span>Source</span>
-                  <span>Status</span>
-                </div>
-                {/* Table rows */}
-                <div className="divide-y max-h-[360px] overflow-y-auto">
-                  {memberRecords.map((record) => (
-                    <div
-                      key={record._id}
-                      className="grid grid-cols-[1fr_120px_80px_80px_70px] sm:grid-cols-[1fr_140px_100px_90px_80px_80px] gap-2 px-4 py-3 items-center text-sm hover:bg-muted/20 transition-colors"
-                    >
-                      {/* Type */}
-                      <div className="flex items-center gap-2.5">
-                        <div className={cn(
-                          "p-1.5 rounded-lg shrink-0",
-                          record.leaveType === "wfh" ? "bg-blue-50 text-blue-600"
-                            : record.leaveType === "sick" ? "bg-rose-50 text-rose-600"
-                            : record.leaveType === "optional" ? "bg-amber-50 text-amber-600"
-                            : "bg-emerald-50 text-emerald-600"
-                        )}>
-                          {record.leaveType === "wfh" ? <Home className="h-3.5 w-3.5" /> : <Plane className="h-3.5 w-3.5" />}
-                        </div>
-                        <div>
-                          <span className="font-medium capitalize">
-                            {leaveTypeNameMap[record.leaveType] || record.leaveType}
-                          </span>
-                          {record.isHalfDay && (
-                            <span className="text-xs text-muted-foreground ml-1">(half)</span>
-                          )}
-                        </div>
+              <div className="space-y-2 max-h-[360px] overflow-y-auto">
+                {memberRecords.map((record) => (
+                  <div
+                    key={record._id}
+                    className="flex items-center justify-between p-3 rounded-lg border text-sm"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={cn(
+                        "p-1.5 rounded-lg shrink-0",
+                        record.leaveType === "wfh" ? "bg-blue-50 text-blue-600"
+                          : record.leaveType === "sick" ? "bg-rose-50 text-rose-600"
+                          : record.leaveType === "optional" ? "bg-amber-50 text-amber-600"
+                          : "bg-emerald-50 text-emerald-600"
+                      )}>
+                        {record.leaveType === "wfh" ? <Home className="h-3.5 w-3.5" /> : <Plane className="h-3.5 w-3.5" />}
                       </div>
-
-                      {/* Date */}
-                      <span className="text-muted-foreground tabular-nums">
-                        {format(new Date(record.startDate), "dd MMM yyyy")}
-                        {record.startDate !== record.endDate && (
-                          <span className="block text-[11px]">→ {format(new Date(record.endDate), "dd MMM")}</span>
-                        )}
-                      </span>
-
-                      {/* Duration (desktop) */}
-                      <span className="text-muted-foreground hidden sm:block">
-                        {record.isHalfDay ? "Half day" : "Full day"}
-                      </span>
-
-                      {/* Days */}
-                      <span className="font-medium tabular-nums">{record.numberOfDays}d</span>
-
-                      {/* Source */}
-                      <span className="text-xs text-muted-foreground">
-                        {record.source === "import" ? "Import" : "Manual"}
-                      </span>
-
-                      {/* Status */}
-                      <Badge
-                        className={cn("text-[10px] capitalize w-fit", statusColorMap[record.status] || "bg-gray-100 text-gray-500")}
-                        variant="secondary"
-                      >
-                        {record.status}
-                      </Badge>
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm">
+                          <span className="capitalize">{leaveTypeNameMap[record.leaveType] || record.leaveType}</span>
+                          <span className="text-muted-foreground font-normal"> — {record.numberOfDays}d{record.isHalfDay ? " (half)" : ""}</span>
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(record.startDate), "dd MMM yyyy")}
+                          {record.startDate !== record.endDate && ` → ${format(new Date(record.endDate), "dd MMM")}`}
+                          {record.source === "import" && " · Imported"}
+                        </p>
+                      </div>
                     </div>
-                  ))}
-                </div>
+                    <Badge
+                      className={cn("text-[10px] capitalize shrink-0", statusColorMap[record.status] || "bg-gray-100 text-gray-500")}
+                      variant="secondary"
+                    >
+                      {record.status}
+                    </Badge>
+                  </div>
+                ))}
               </div>
             )}
           </div>

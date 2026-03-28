@@ -517,7 +517,7 @@ export function CalendarificImporter({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* ---------------------------------------------------------------- */}
       {/* Controls bar                                                      */}
       {/* ---------------------------------------------------------------- */}

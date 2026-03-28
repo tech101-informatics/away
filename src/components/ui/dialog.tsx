@@ -77,19 +77,22 @@ function DialogContent({ className, children, ...props }: React.HTMLAttributes<H
     <div className="fixed inset-0 z-50">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm animate-in fade-in-0"
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm"
         onClick={() => onOpenChange(false)}
+        style={{ animation: "fadeIn 150ms ease-out" }}
       />
-      {/* Content */}
-      <div className="fixed inset-0 flex items-center justify-center p-4">
+
+      {/* Desktop: centered modal */}
+      <div className="hidden sm:flex fixed inset-0 items-center justify-center p-4">
         <div
           className={cn(
-            "relative w-full max-w-lg bg-background border rounded-xl p-6 shadow-xl animate-in fade-in-0 zoom-in-95",
+            "relative w-full max-w-lg bg-background border rounded-xl p-6 shadow-xl",
             className
           )}
           onClick={(e) => e.stopPropagation()}
           role="dialog"
           aria-modal="true"
+          style={{ animation: "dialogIn 200ms cubic-bezier(0.22,1,0.36,1)" }}
           {...props}
         >
           {children}
@@ -103,6 +106,26 @@ function DialogContent({ className, children, ...props }: React.HTMLAttributes<H
           </button>
         </div>
       </div>
+
+      {/* Mobile: bottom sheet */}
+      <div className="sm:hidden fixed inset-x-0 bottom-0" onClick={(e) => e.stopPropagation()}>
+        <div
+          className={cn(
+            "relative w-full bg-background rounded-t-2xl p-4 md:p-5 md:pb-6 shadow-xl max-h-[90vh] overflow-y-auto",
+            className
+          )}
+          role="dialog"
+          aria-modal="true"
+          style={{ animation: "sheetUp 250ms cubic-bezier(0.22,1,0.36,1)" }}
+          {...props}
+        >
+          {/* Drag handle */}
+          <div className="flex justify-center mb-4">
+            <div className="w-10 h-1 rounded-full bg-muted-foreground/20" />
+          </div>
+          {children}
+        </div>
+      </div>
     </div>,
     document.body
   );
@@ -113,7 +136,7 @@ function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivEleme
 }
 
 function DialogFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2", className)} {...props} />;
+  return <div className={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 mt-4 gap-2", className)} {...props} />;
 }
 
 function DialogTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {

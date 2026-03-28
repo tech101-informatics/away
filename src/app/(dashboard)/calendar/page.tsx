@@ -60,6 +60,7 @@ const WEEKDAYS_FULL = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default function CalendarPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const year = currentMonth.getFullYear();
 
   const { data: holidays } = useFetch<HolidayCalendarData>(
@@ -253,12 +254,14 @@ export default function CalendarPage() {
               return (
                 <div
                   key={i}
+                  onClick={() => setSelectedDay(selectedDay === dateStr ? null : dateStr)}
                   className={cn(
-                    "min-h-[56px] sm:min-h-[100px] p-1 sm:p-1.5 bg-card transition-colors",
+                    "min-h-[56px] sm:min-h-[100px] p-1 sm:p-1.5 bg-card transition-colors cursor-pointer",
                     !isCurrentMonth && "opacity-40",
                     weekend && "bg-muted/40",
                     hasHoliday && "bg-indigo-50/60",
-                    isToday && "ring-2 ring-primary/50 ring-inset bg-primary/[0.03]"
+                    isToday && "ring-2 ring-primary/50 ring-inset bg-primary/[0.03]",
+                    selectedDay === dateStr && "ring-2 ring-foreground/20 ring-inset bg-accent/50"
                   )}
                 >
                   <div
@@ -322,6 +325,52 @@ export default function CalendarPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Selected day detail */}
+      {selectedDay && eventMap[selectedDay] && eventMap[selectedDay].length > 0 && (
+        <Card className="mt-4">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold">
+                {format(new Date(selectedDay), "EEEE, MMMM d, yyyy")}
+              </h3>
+              <button
+                onClick={() => setSelectedDay(null)}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                Close
+              </button>
+            </div>
+            <div className="space-y-2">
+              {eventMap[selectedDay].map((event, i) => (
+                <div key={i} className="flex items-center gap-2.5 py-1.5">
+                  <div className={cn("w-3 h-3 rounded-full shrink-0", event.color)} />
+                  <span className="text-sm">{event.label}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {selectedDay && (!eventMap[selectedDay] || eventMap[selectedDay].length === 0) && (
+        <Card className="mt-4">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold">
+                {format(new Date(selectedDay), "EEEE, MMMM d, yyyy")}
+              </h3>
+              <button
+                onClick={() => setSelectedDay(null)}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                Close
+              </button>
+            </div>
+            <p className="text-sm text-muted-foreground">No events on this day.</p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

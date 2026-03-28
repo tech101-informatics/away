@@ -36,7 +36,7 @@ function TabsList({ className, ...props }: React.HTMLAttributes<HTMLDivElement>)
     <div
       role="tablist"
       className={cn(
-        "inline-flex h-10 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground",
+        "flex h-10 items-center gap-0 rounded-lg bg-muted p-1 text-muted-foreground overflow-x-auto no-scrollbar w-full sm:inline-flex sm:w-auto",
         className
       )}
       {...props}
@@ -55,7 +55,7 @@ function TabsTrigger({ value, className, ...props }: { value: string } & React.B
       aria-selected={isActive}
       onClick={() => onValueChange(value)}
       className={cn(
-        "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all",
+        "inline-flex items-center justify-center whitespace-nowrap shrink-0 rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all",
         "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1",
         "disabled:pointer-events-none disabled:opacity-50",
         isActive ? "bg-background text-foreground shadow-sm" : "",

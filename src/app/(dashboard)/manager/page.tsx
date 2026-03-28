@@ -45,6 +45,26 @@ import {
 } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 
+function ExpandableText({ text, limit = 120 }: { text: string; limit?: number }) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = text.length > limit;
+
+  if (!isLong) return <span>{text}</span>;
+
+  return (
+    <span>
+      {expanded ? text : text.slice(0, limit) + "..."}
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+        className="ml-1 text-primary text-xs font-medium hover:underline"
+      >
+        {expanded ? "less" : "more"}
+      </button>
+    </span>
+  );
+}
+
 interface Employee {
   _id: string;
   name: string;
@@ -138,6 +158,33 @@ export default function ManagerPage() {
   const pastWfh = (wfhRequests || []).filter((r) => r.status !== "pending");
 
   const pendingCount = pendingLeave.length + pendingWfh.length;
+
+  // Find who else is on leave/WFH on a given date range
+  const approvedLeaves = (leaveRequests || []).filter((r) => r.status === "approved");
+  const approvedWfh = (wfhRequests || []).filter((r) => r.status === "approved");
+
+  const getOthersOnLeave = (startDate: string, endDate: string, excludeId: string) => {
+    const start = new Date(startDate).getTime();
+    const end = new Date(endDate).getTime();
+    return approvedLeaves
+      .filter((r) => {
+        if (r.employeeId?._id === excludeId) return false;
+        const rStart = new Date(r.startDate).getTime();
+        const rEnd = new Date(r.endDate).getTime();
+        return rStart <= end && rEnd >= start;
+      })
+      .map((r) => ({ name: r.employeeId?.name, type: r.leaveType }));
+  };
+
+  const getOthersOnWfh = (date: string, excludeId: string) => {
+    const d = format(new Date(date), "yyyy-MM-dd");
+    return approvedWfh
+      .filter((r) => {
+        if (r.employeeId?._id === excludeId) return false;
+        return format(new Date(r.date), "yyyy-MM-dd") === d;
+      })
+      .map((r) => ({ name: r.employeeId?.name }));
+  };
 
   return (
     <div>
@@ -236,7 +283,7 @@ export default function ManagerPage() {
         </Card>
       )}
 
-      <Tabs defaultValue="leave" className="space-y-6">
+      <Tabs defaultValue="leave" className="space-y-4 md:space-y-6">
         <TabsList>
           <TabsTrigger value="leave" className="gap-2">
             <Plane className="h-4 w-4" />
@@ -262,7 +309,7 @@ export default function ManagerPage() {
           {loadingLeave ? (
             <LoadingTable rows={4} />
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-4 md:space-y-6">
               {/* Pending */}
               {pendingLeave.length > 0 && (
                 <Card>
@@ -276,10 +323,10 @@ export default function ManagerPage() {
                     {pendingLeave.map((req) => (
                       <div
                         key={req._id}
-                        className="flex items-start justify-between p-4 rounded-lg border bg-amber-50/80 border-amber-200/60"
+                        className="p-4 rounded-lg border bg-amber-50/80 border-amber-200/60 space-y-3"
                       >
                         <div className="flex items-start gap-3">
-                          <Avatar className="h-10 w-10 mt-0.5">
+                          <Avatar className="h-10 w-10 mt-0.5 shrink-0">
                             <AvatarImage src={req.employeeId?.image} />
                             <AvatarFallback className="text-xs bg-amber-100 text-amber-700">
                               {req.employeeId?.name
@@ -288,9 +335,9 @@ export default function ManagerPage() {
                                 .join("")}
                             </AvatarFallback>
                           </Avatar>
-                          <div>
+                          <div className="min-w-0">
                             <p className="font-medium">{req.employeeId?.name}</p>
-                            <div className="flex items-center gap-2 mt-1">
+                            <div className="flex flex-wrap items-center gap-1.5 mt-1">
                               <Badge
                                 className={cn(
                                   "text-[11px]",
@@ -300,25 +347,34 @@ export default function ManagerPage() {
                               >
                                 {leaveTypeLabels[req.leaveType]}
                               </Badge>
-                              <span className="text-sm text-muted-foreground">
+                              <span className="text-xs sm:text-sm font-medium text-foreground">
                                 {formatDateRange(
                                   format(new Date(req.startDate), "yyyy-MM-dd"),
                                   format(new Date(req.endDate), "yyyy-MM-dd")
                                 )}
                               </span>
-                              <span className="text-sm font-semibold tabular-nums">
-                                ({req.numberOfDays} day{req.numberOfDays > 1 ? "s" : ""})
+                              <span className="text-xs sm:text-sm font-bold tabular-nums text-foreground">
+                                ({req.numberOfDays}d)
                               </span>
                             </div>
                             {req.reason && (
-                              <p className="text-sm text-muted-foreground mt-1 flex items-start gap-1">
+                              <p className="text-xs sm:text-sm text-muted-foreground mt-1.5 flex items-start gap-1">
                                 <MessageSquare className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                                {req.reason}
+                                <ExpandableText text={req.reason} />
                               </p>
                             )}
+                            {(() => {
+                              const others = getOthersOnLeave(req.startDate, req.endDate, req.employeeId?._id);
+                              if (others.length === 0) return null;
+                              return (
+                                <p className="text-[11px] text-amber-700 mt-1.5">
+                                  Also off: {others.map((o) => o.name?.split(" ")[0]).join(", ")}
+                                </p>
+                              );
+                            })()}
                           </div>
                         </div>
-                        <div className="flex gap-2 ml-4 shrink-0">
+                        <div className="flex gap-2 sm:justify-end">
                           <Button
                             size="sm"
                             className="gap-1 bg-emerald-600 hover:bg-emerald-700"
@@ -420,7 +476,7 @@ export default function ManagerPage() {
           {loadingWfh ? (
             <LoadingTable rows={4} />
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-4 md:space-y-6">
               {pendingWfh.length > 0 && (
                 <Card>
                   <CardHeader>
@@ -433,10 +489,10 @@ export default function ManagerPage() {
                     {pendingWfh.map((req) => (
                       <div
                         key={req._id}
-                        className="flex items-start justify-between p-4 rounded-lg border bg-amber-50/80 border-amber-200/60"
+                        className="p-4 rounded-lg border bg-amber-50/80 border-amber-200/60 space-y-3"
                       >
                         <div className="flex items-start gap-3">
-                          <Avatar className="h-10 w-10 mt-0.5">
+                          <Avatar className="h-10 w-10 mt-0.5 shrink-0">
                             <AvatarImage src={req.employeeId?.image} />
                             <AvatarFallback className="text-xs bg-blue-100 text-blue-700">
                               {req.employeeId?.name
@@ -445,20 +501,31 @@ export default function ManagerPage() {
                                 .join("")}
                             </AvatarFallback>
                           </Avatar>
-                          <div>
+                          <div className="min-w-0">
                             <p className="font-medium">{req.employeeId?.name}</p>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {format(new Date(req.date), "EEEE, MMMM d, yyyy")}
+                            <p className="text-xs sm:text-sm font-medium text-foreground mt-1">
+                              {format(new Date(req.date), "EEE, MMM d, yyyy")}
                             </p>
                             {req.reason && (
-                              <p className="text-sm text-muted-foreground mt-1 flex items-start gap-1">
+                              <p className="text-xs sm:text-sm text-muted-foreground mt-1.5 flex items-start gap-1">
                                 <MessageSquare className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                                {req.reason}
+                                <ExpandableText text={req.reason} />
                               </p>
                             )}
+                            {(() => {
+                              const othersLeave = getOthersOnLeave(req.date, req.date, req.employeeId?._id);
+                              const othersWfh = getOthersOnWfh(req.date, req.employeeId?._id);
+                              const all = [...othersLeave.map((o) => `${o.name?.split(" ")[0]} (leave)`), ...othersWfh.map((o) => `${o.name?.split(" ")[0]} (WFH)`)];
+                              if (all.length === 0) return null;
+                              return (
+                                <p className="text-[11px] text-amber-700 mt-1.5">
+                                  Also off: {all.join(", ")}
+                                </p>
+                              );
+                            })()}
                           </div>
                         </div>
-                        <div className="flex gap-2 ml-4 shrink-0">
+                        <div className="flex gap-2 sm:justify-end">
                           <Button
                             size="sm"
                             className="gap-1 bg-emerald-600 hover:bg-emerald-700"

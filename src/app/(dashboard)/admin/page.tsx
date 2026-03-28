@@ -250,8 +250,8 @@ export default function AdminPage() {
     <div>
       <PageHeader title="Admin Panel" description="Manage users, policies, and holidays." />
 
-      <Tabs defaultValue="leave-policy" className="space-y-6">
-        <TabsList className="flex-wrap">
+      <Tabs defaultValue="leave-policy" className="space-y-4 md:space-y-6">
+        <TabsList>
           <TabsTrigger value="leave-policy" className="gap-2">
             <FileText className="h-4 w-4" /> Leave Policy
           </TabsTrigger>

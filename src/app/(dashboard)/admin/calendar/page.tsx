@@ -100,7 +100,7 @@ export default function AdminCalendarPage() {
         <YearSelector value={selectedYear} onChange={handleYearChange} />
       </PageHeader>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
         <TabsList>
           <TabsTrigger value="saved" className="gap-2">
             <CalendarDays className="h-4 w-4" />

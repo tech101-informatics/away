@@ -101,9 +101,16 @@ function SelectContent({ className, children, ...props }: React.HTMLAttributes<H
   React.useEffect(() => {
     if (open && triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
+      const dropdownWidth = Math.max(rect.width, 140);
+      let left = rect.left;
+      // Prevent overflow on right edge
+      if (left + dropdownWidth > window.innerWidth - 8) {
+        left = window.innerWidth - dropdownWidth - 8;
+      }
+      left = Math.max(8, left);
       setPos({
         top: rect.bottom + 4,
-        left: rect.left,
+        left,
         width: rect.width,
       });
     }
@@ -135,7 +142,7 @@ function SelectContent({ className, children, ...props }: React.HTMLAttributes<H
       {mounted && open && createPortal(
         <div
           ref={ref}
-          style={{ position: "fixed", top: pos.top, left: pos.left, width: pos.width, zIndex: 50 }}
+          style={{ position: "fixed", top: pos.top, left: pos.left, minWidth: Math.max(pos.width, 140), zIndex: 50 }}
           className={cn(
             "max-h-64 overflow-auto rounded-lg border bg-popover p-1 text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95",
             className
