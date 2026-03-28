@@ -1,6 +1,9 @@
 import { z } from "zod";
 
-const ALLOWED_DOMAIN = process.env.ALLOWED_EMAIL_DOMAIN || "storepecker.me";
+const ALLOWED_DOMAINS = (process.env.ALLOWED_EMAIL_DOMAIN || "storepecker.me")
+  .split(",")
+  .map((d) => d.trim().toLowerCase())
+  .filter(Boolean);
 
 export const AddMemberSchema = z.object({
   slackUserId: z.string().default(""),
@@ -10,8 +13,11 @@ export const AddMemberSchema = z.object({
   workEmail: z
     .string()
     .email("Invalid work email")
-    .refine((e) => e.endsWith(`@${ALLOWED_DOMAIN}`), {
-      message: `Work email must end with @${ALLOWED_DOMAIN}`,
+    .refine((e) => {
+      const domain = e.split("@")[1]?.toLowerCase();
+      return ALLOWED_DOMAINS.includes(domain);
+    }, {
+      message: `Work email must end with @${ALLOWED_DOMAINS.join(" or @")}`,
     })
     .optional(),
   role: z.enum(["employee", "manager"]),

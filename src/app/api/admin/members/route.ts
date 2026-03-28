@@ -47,9 +47,11 @@ export async function POST(req: Request) {
   }
 
   const data = parsed.data;
-  const allowedDomain = process.env.ALLOWED_EMAIL_DOMAIN || "storepecker.me";
+  const allowedDomains = (process.env.ALLOWED_EMAIL_DOMAIN || "storepecker.me")
+    .split(",").map((d) => d.trim().toLowerCase()).filter(Boolean);
   const hasSlack = !!data.slackEmail;
-  const isSlackEmailMatch = hasSlack && data.slackEmail.endsWith(`@${allowedDomain}`);
+  const slackDomain = data.slackEmail.split("@")[1]?.toLowerCase();
+  const isSlackEmailMatch = hasSlack && allowedDomains.includes(slackDomain);
 
   let loginEmail: string;
   let isSlackLinked: boolean;
@@ -60,7 +62,7 @@ export async function POST(req: Request) {
   } else {
     if (!data.workEmail) {
       return NextResponse.json(
-        { error: `Work email (@${allowedDomain}) is required` },
+        { error: `Work email (@${allowedDomains.join(" or @")}) is required` },
         { status: 400 }
       );
     }

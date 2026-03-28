@@ -23,14 +23,15 @@ export async function GET() {
       existingUsers.map((u) => (u as Record<string, unknown>).slackUserId as string)
     );
 
-    const allowedDomain = process.env.ALLOWED_EMAIL_DOMAIN || "storepecker.me";
+    const allowedDomains = (process.env.ALLOWED_EMAIL_DOMAIN || "storepecker.me")
+      .split(",").map((d) => d.trim().toLowerCase()).filter(Boolean);
 
     const mapped = slackMembers.map((m) => ({
       slackUserId: m.id,
       slackDisplayName: m.profile.display_name || m.real_name,
       slackEmail: m.profile.email || "",
       slackAvatar: m.profile.image_72,
-      isStorepeckerEmail: m.profile.email?.endsWith(`@${allowedDomain}`) || false,
+      isStorepeckerEmail: allowedDomains.includes(m.profile.email?.split("@")[1]?.toLowerCase() || "") || false,
       alreadyAdded: linkedSlackIds.has(m.id),
     }));
 
