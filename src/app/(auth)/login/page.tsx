@@ -1,6 +1,7 @@
 "use client";
 
 import { signIn } from "next-auth/react";
+import Image from "next/image";
 import { Logo } from "@/components/away/logo";
 import { Button } from "@/components/ui/button";
 
@@ -22,15 +23,15 @@ export default function LoginPage() {
 
         {/* Floating decorative icons */}
         <div className="absolute top-16 right-16 opacity-20 animate-pulse">
-          <img src="/icon-transparent.png" alt="" width={48} height={48} className="brightness-200" />
+          <Image src="/icon-transparent.png" unoptimized alt="" width={48} height={48} className="brightness-200" />
         </div>
         <div className="absolute bottom-24 left-20 opacity-10 animate-pulse" style={{ animationDelay: "1s" }}>
-          <img src="/icon-transparent.png" alt="" width={32} height={32} className="brightness-200" />
+          <Image src="/icon-transparent.png" unoptimized alt="" width={32} height={32} className="brightness-200" />
         </div>
 
         <div className="relative z-10 text-center">
           <div className="flex items-center justify-center mb-6">
-            <img src="/icon-transparent.png" alt="Away" width={64} height={64} className="drop-shadow-lg" />
+            <Image src="/icon-transparent.png" unoptimized alt="Away" width={64} height={64} className="drop-shadow-lg" />
             <h1 className="text-5xl lg:text-6xl font-bold tracking-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
               Away
             </h1>
@@ -80,7 +81,7 @@ export default function LoginPage() {
 
           <div className="mt-12 flex items-center justify-center gap-6 text-muted-foreground/30">
             <div className="h-px flex-1 bg-border" />
-            <img src="/away_icon.svg" alt="" width={16} height={16} className="opacity-60" />
+            <Image src="/away_icon.svg" unoptimized alt="" width={16} height={16} className="opacity-60" />
             <div className="h-px flex-1 bg-border" />
           </div>
         </div>
