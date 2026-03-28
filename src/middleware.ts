@@ -16,7 +16,7 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/api/slack/commands")
   ) {
     if (pathname.startsWith("/login")) {
-      const token = await getToken({ req, secret });
+      const token = await getToken({ req, secret, secureCookie: req.nextUrl.protocol === "https:" });
       if (token) {
         return NextResponse.redirect(new URL("/dashboard", req.url));
       }
@@ -24,7 +24,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = await getToken({ req, secret });
+  const token = await getToken({ req, secret, secureCookie: req.nextUrl.protocol === "https:" });
 
   // Redirect unauthenticated users to login
   if (!token) {
