@@ -55,7 +55,8 @@ interface OptionalHolidayData {
   }>;
 }
 
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WEEKDAYS_SHORT = ["S", "M", "T", "W", "T", "F", "S"];
+const WEEKDAYS_FULL = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default function CalendarPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -174,29 +175,29 @@ export default function CalendarPage() {
       />
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-3 mb-6">
-        <div className="flex items-center gap-1.5 text-sm">
-          <div className="w-3 h-3 rounded-full shrink-0 bg-indigo-500" />
+      <div className="flex flex-wrap gap-2 sm:gap-3 mb-4 sm:mb-6">
+        <div className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm">
+          <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full shrink-0 bg-indigo-500" />
           <span className="text-muted-foreground">National</span>
         </div>
-        <div className="flex items-center gap-1.5 text-sm">
-          <div className="w-3 h-3 rounded-full shrink-0 bg-orange-500" />
+        <div className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm">
+          <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full shrink-0 bg-orange-500" />
           <span className="text-muted-foreground">Company</span>
         </div>
-        <div className="flex items-center gap-1.5 text-sm">
-          <div className="w-3 h-3 rounded-full shrink-0 bg-teal-500" />
+        <div className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm">
+          <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full shrink-0 bg-teal-500" />
           <span className="text-muted-foreground">Optional</span>
         </div>
-        <div className="flex items-center gap-1.5 text-sm">
-          <div className="w-3 h-3 rounded-full shrink-0 bg-emerald-500" />
-          <span className="text-muted-foreground">Approved Leave</span>
+        <div className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm">
+          <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full shrink-0 bg-emerald-500" />
+          <span className="text-muted-foreground">Leave</span>
         </div>
-        <div className="flex items-center gap-1.5 text-sm">
-          <div className="w-3 h-3 rounded-full shrink-0 bg-blue-500" />
-          <span className="text-muted-foreground">Approved WFH</span>
+        <div className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm">
+          <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full shrink-0 bg-blue-500" />
+          <span className="text-muted-foreground">WFH</span>
         </div>
-        <div className="flex items-center gap-1.5 text-sm">
-          <div className="w-3 h-3 rounded-full shrink-0 bg-gray-300" />
+        <div className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm">
+          <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full shrink-0 bg-gray-300" />
           <span className="text-muted-foreground">Pending</span>
         </div>
       </div>
@@ -226,12 +227,13 @@ export default function CalendarPage() {
         <CardContent>
           {/* Weekday headers */}
           <div className="grid grid-cols-7 mb-2">
-            {WEEKDAYS.map((day) => (
+            {WEEKDAYS_FULL.map((day, i) => (
               <div
                 key={day}
                 className="text-center text-xs font-medium text-muted-foreground py-2"
               >
-                {day}
+                <span className="sm:hidden">{WEEKDAYS_SHORT[i]}</span>
+                <span className="hidden sm:inline">{day}</span>
               </div>
             ))}
           </div>
@@ -252,7 +254,7 @@ export default function CalendarPage() {
                 <div
                   key={i}
                   className={cn(
-                    "min-h-[72px] sm:min-h-[100px] p-1.5 bg-card transition-colors",
+                    "min-h-[56px] sm:min-h-[100px] p-1 sm:p-1.5 bg-card transition-colors",
                     !isCurrentMonth && "opacity-40",
                     weekend && "bg-muted/40",
                     hasHoliday && "bg-indigo-50/60",
@@ -272,40 +274,45 @@ export default function CalendarPage() {
                     {format(day, "d")}
                   </div>
                   <div className="space-y-0.5">
-                    {/* Holidays render as prominent colored pills */}
+                    {/* Mobile: dots only. Desktop: full pills/labels */}
+
+                    {/* Holiday pills — hidden on mobile, shown on sm+ */}
                     {holidayEvents.slice(0, 2).map((event, j) => (
                       <div
                         key={`h-${j}`}
-                        className={cn(
-                          "rounded px-1 py-0.5 text-[10px] sm:text-[11px] font-semibold leading-tight truncate",
-                          event.pillColor || "bg-indigo-500 text-white"
-                        )}
                         title={event.label}
                       >
-                        {event.label}
+                        {/* Mobile dot */}
+                        <div className={cn("w-2.5 h-2.5 rounded-full sm:hidden", event.color)} />
+                        {/* Desktop pill */}
+                        <div
+                          className={cn(
+                            "hidden sm:block rounded px-1 py-0.5 text-[11px] font-semibold leading-tight truncate",
+                            event.pillColor || "bg-indigo-500 text-white"
+                          )}
+                        >
+                          {event.label}
+                        </div>
                       </div>
                     ))}
-                    {/* Other events render as dot + text */}
+
+                    {/* Other events — dots on mobile, dot+label on desktop */}
                     {otherEvents.slice(0, hasHoliday ? 1 : 3).map((event, j) => (
                       <div
                         key={`e-${j}`}
                         className="flex items-center gap-1"
                         title={event.label}
                       >
-                        <div
-                          className={cn(
-                            "w-2 h-2 rounded-full shrink-0",
-                            event.color
-                          )}
-                        />
-                        <span className="text-[11px] truncate leading-tight text-muted-foreground">
+                        <div className={cn("w-2.5 h-2.5 sm:w-2 sm:h-2 rounded-full shrink-0", event.color)} />
+                        <span className="hidden sm:inline text-[11px] truncate leading-tight text-muted-foreground">
                           {event.label}
                         </span>
                       </div>
                     ))}
-                    {events.length > (hasHoliday ? 3 : 3) && (
-                      <span className="text-[10px] text-muted-foreground">
-                        +{events.length - (hasHoliday ? 3 : 3)} more
+
+                    {events.length > 3 && (
+                      <span className="text-[9px] sm:text-[10px] text-muted-foreground">
+                        +{events.length - 3}
                       </span>
                     )}
                   </div>
