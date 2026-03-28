@@ -52,6 +52,12 @@ export async function handleInteraction(payload: SlackPayload) {
     if (view?.callback_id === "wfh_reject_modal") {
       await handleWFHRejectSubmit(payload);
     }
+    if (view?.callback_id === "slash_leave_submit") {
+      await handleSlashLeaveSubmit(payload);
+    }
+    if (view?.callback_id === "slash_wfh_submit") {
+      await handleSlashWFHSubmit(payload);
+    }
   }
 }
 
@@ -396,4 +402,209 @@ async function handleWFHRejectSubmit(payload: SlackPayload) {
       text: `Your WFH request for ${dateStr} was rejected${reason ? `: ${reason}` : ""}.`,
     });
   }
+}
+
+// =====================================================================
+// Slash Command Modal Submissions
+// =====================================================================
+
+async function handleSlashLeaveSubmit(payload: SlackPayload) {
+  await connectDB();
+  const slack = getSlackClient();
+  const slackUserId = payload.user.id;
+  const values = payload.view.state.values;
+
+  const user = await User.findOne({ slackUserId, isActive: true });
+  if (!user) return;
+
+  const leaveType = values.leave_type?.leave_type_select?.selected_option?.value;
+  const startDate = values.start_date?.start_date_pick?.selected_date;
+  const endDate = values.end_date?.end_date_pick?.selected_date;
+  const halfDayVal = values.half_day?.half_day_select?.selected_option?.value || "full";
+  const reason = values.reason?.reason_input?.value;
+
+  if (!leaveType || !startDate || !endDate || !reason) return;
+
+  const isHalfDay = halfDayVal !== "full";
+  const halfDayPeriod = isHalfDay ? halfDayVal : undefined;
+
+  // Find approver
+  let approverId = user.managerId;
+  if (!approverId) {
+    const admin = await User.findOne({ role: "admin", isActive: true }).lean();
+    approverId = admin ? (admin as Record<string, unknown>)._id : null;
+  }
+
+  // Calculate working days
+  const { calculateWorkingDays } = await import("@/lib/helpers");
+  const numberOfDays = isHalfDay ? 0.5 : calculateWorkingDays(startDate, endDate);
+
+  if (numberOfDays <= 0) {
+    await slack.chat.postMessage({
+      channel: slackUserId,
+      text: ":x: No working days in the selected date range.",
+    });
+    return;
+  }
+
+  // Create leave request
+  const leaveRequest = await LeaveRequest.create({
+    employeeId: user._id,
+    managerId: approverId || undefined,
+    leaveType,
+    startDate,
+    endDate: isHalfDay ? startDate : endDate,
+    numberOfDays,
+    isHalfDay,
+    halfDayPeriod,
+    reason,
+    status: "pending",
+  });
+
+  // Send interactive messages
+  const { buildLeaveRequestBlocks } = await import("@/lib/slack-blocks");
+  const { leaveTypeLabels } = await import("@/lib/helpers");
+
+  const balance = (user.leaveBalances as Array<{ leaveType: string; remaining: number }>)
+    ?.find((b) => b.leaveType === leaveType);
+
+  const slackMsg = buildLeaveRequestBlocks({
+    employeeName: user.name,
+    leaveType: leaveTypeLabels[leaveType] || leaveType,
+    startDate: format(new Date(startDate), "MMM d, yyyy"),
+    endDate: format(new Date(isHalfDay ? startDate : endDate), "MMM d, yyyy"),
+    numberOfDays,
+    reason,
+    remainingBalance: balance?.remaining ?? 0,
+    leaveRequestId: leaveRequest._id.toString(),
+    awayUrl: process.env.NEXT_PUBLIC_APP_URL || "https://away.storepecker.com",
+  });
+
+  // Post to admin channel
+  if (process.env.SLACK_ADMIN_CHANNEL_ID) {
+    const adminMsg = await slack.chat.postMessage({
+      channel: process.env.SLACK_ADMIN_CHANNEL_ID,
+      text: slackMsg.text,
+      blocks: slackMsg.blocks as never[],
+    });
+    if (adminMsg.ts) {
+      await LeaveRequest.findByIdAndUpdate(leaveRequest._id, {
+        adminChannelMessageTs: adminMsg.ts,
+      });
+    }
+  }
+
+  // DM to manager
+  if (approverId) {
+    const mgr = await User.findById(approverId).lean();
+    const mgrData = mgr as Record<string, unknown> | null;
+    if (mgrData?.isSlackLinked && mgrData?.slackUserId) {
+      const dmMsg = await slack.chat.postMessage({
+        channel: mgrData.slackUserId as string,
+        text: slackMsg.text,
+        blocks: slackMsg.blocks as never[],
+      });
+      if (dmMsg.ts && dmMsg.channel) {
+        await LeaveRequest.findByIdAndUpdate(leaveRequest._id, {
+          managerDMChannelId: dmMsg.channel,
+          managerDMMessageTs: dmMsg.ts,
+        });
+      }
+    }
+  }
+
+  // Confirm to employee
+  await slack.chat.postMessage({
+    channel: slackUserId,
+    text: `:white_check_mark: Your *${leaveTypeLabels[leaveType] || leaveType}* request has been submitted!\n*${format(new Date(startDate), "MMM d")}${startDate !== endDate ? ` → ${format(new Date(endDate), "MMM d")}` : ""}* (${numberOfDays} day${numberOfDays !== 1 ? "s" : ""})\nYour manager will be notified.`,
+  });
+}
+
+async function handleSlashWFHSubmit(payload: SlackPayload) {
+  await connectDB();
+  const slack = getSlackClient();
+  const slackUserId = payload.user.id;
+  const values = payload.view.state.values;
+
+  const user = await User.findOne({ slackUserId, isActive: true });
+  if (!user) return;
+
+  const date = values.wfh_date?.wfh_date_pick?.selected_date;
+  const halfDayVal = values.half_day?.half_day_select?.selected_option?.value || "full";
+  const reason = values.reason?.reason_input?.value;
+
+  if (!date || !reason) return;
+
+  const isHalfDay = halfDayVal !== "full";
+
+  // Find approver
+  let approverId = user.managerId;
+  if (!approverId) {
+    const admin = await User.findOne({ role: "admin", isActive: true }).lean();
+    approverId = admin ? (admin as Record<string, unknown>)._id : null;
+  }
+
+  // Check for duplicate
+  const existing = await WFHRequest.findOne({
+    employeeId: user._id,
+    date,
+    status: { $ne: "cancelled" },
+  });
+
+  if (existing) {
+    await slack.chat.postMessage({
+      channel: slackUserId,
+      text: ":x: You already have a WFH request for this date.",
+    });
+    return;
+  }
+
+  const wfhRequest = await WFHRequest.create({
+    employeeId: user._id,
+    managerId: approverId || undefined,
+    date,
+    isHalfDay,
+    halfDayPeriod: isHalfDay ? halfDayVal : undefined,
+    reason,
+    status: "pending",
+  });
+
+  // Send interactive message
+  const { buildWFHRequestBlocks } = await import("@/lib/slack-blocks");
+  const wfhBalance = (user.leaveBalances as Array<{ leaveType: string; remaining: number }>)
+    ?.find((b) => b.leaveType === "wfh");
+
+  const slackMsg = buildWFHRequestBlocks({
+    employeeName: user.name,
+    date: format(new Date(date), "MMM d, yyyy"),
+    reason,
+    remainingBalance: wfhBalance?.remaining ?? 0,
+    wfhRequestId: wfhRequest._id.toString(),
+    awayUrl: process.env.NEXT_PUBLIC_APP_URL || "https://away.storepecker.com",
+  });
+
+  if (process.env.SLACK_ADMIN_CHANNEL_ID) {
+    await slack.chat.postMessage({
+      channel: process.env.SLACK_ADMIN_CHANNEL_ID,
+      text: slackMsg.text,
+      blocks: slackMsg.blocks as never[],
+    });
+  }
+
+  if (approverId) {
+    const mgr = await User.findById(approverId).lean();
+    const mgrData = mgr as Record<string, unknown> | null;
+    if (mgrData?.isSlackLinked && mgrData?.slackUserId) {
+      await slack.chat.postMessage({
+        channel: mgrData.slackUserId as string,
+        text: slackMsg.text,
+        blocks: slackMsg.blocks as never[],
+      });
+    }
+  }
+
+  await slack.chat.postMessage({
+    channel: slackUserId,
+    text: `:white_check_mark: WFH request submitted for *${format(new Date(date), "MMM d, yyyy")}*!\nYour manager will be notified.`,
+  });
 }

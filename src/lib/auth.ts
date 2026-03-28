@@ -3,7 +3,10 @@ import Google from "next-auth/providers/google";
 import { connectDB } from "./db";
 import User from "@/models/User";
 
-const ALLOWED_DOMAIN = process.env.ALLOWED_EMAIL_DOMAIN || "storepecker.me";
+const ALLOWED_DOMAINS = (process.env.ALLOWED_EMAIL_DOMAIN || "storepecker.me")
+  .split(",")
+  .map((d) => d.trim().toLowerCase())
+  .filter(Boolean);
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
@@ -24,7 +27,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       const email = user.email?.toLowerCase() || "";
 
       // 1. Domain check
-      if (!email.endsWith(`@${ALLOWED_DOMAIN}`)) {
+      const emailDomain = email.split("@")[1];
+      if (!ALLOWED_DOMAINS.includes(emailDomain)) {
         return `/auth/error?error=domain_not_allowed`;
       }
 

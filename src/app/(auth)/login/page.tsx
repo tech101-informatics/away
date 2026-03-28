@@ -3,7 +3,6 @@
 import { signIn } from "next-auth/react";
 import { Logo } from "@/components/away/logo";
 import { Button } from "@/components/ui/button";
-import { Plane } from "lucide-react";
 
 export default function LoginPage() {
   return (
@@ -21,19 +20,17 @@ export default function LoginPage() {
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-indigo-400/10 rounded-full blur-3xl" />
         <div className="absolute top-1/3 right-20 w-32 h-32 bg-blue-300/10 rounded-full blur-2xl" />
 
-        {/* Floating planes */}
+        {/* Floating decorative icons */}
         <div className="absolute top-16 right-16 opacity-20 animate-pulse">
-          <Plane className="h-12 w-12 -rotate-45" />
+          <img src="/icon-transparent.png" alt="" width={48} height={48} className="brightness-200" />
         </div>
         <div className="absolute bottom-24 left-20 opacity-10 animate-pulse" style={{ animationDelay: "1s" }}>
-          <Plane className="h-8 w-8 -rotate-12" />
+          <img src="/icon-transparent.png" alt="" width={32} height={32} className="brightness-200" />
         </div>
 
         <div className="relative z-10 text-center">
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <div className="bg-white/10 backdrop-blur-sm p-3 rounded-2xl border border-white/10">
-              <Plane className="h-10 w-10 -rotate-45" />
-            </div>
+          <div className="flex items-center justify-center mb-6">
+            <img src="/icon-transparent.png" alt="Away" width={64} height={64} className="drop-shadow-lg" />
             <h1 className="text-5xl lg:text-6xl font-bold tracking-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
               Away
             </h1>
@@ -83,7 +80,7 @@ export default function LoginPage() {
 
           <div className="mt-12 flex items-center justify-center gap-6 text-muted-foreground/30">
             <div className="h-px flex-1 bg-border" />
-            <Plane className="h-4 w-4 -rotate-45" />
+            <img src="/away_icon.svg" alt="" width={16} height={16} className="opacity-60" />
             <div className="h-px flex-1 bg-border" />
           </div>
         </div>

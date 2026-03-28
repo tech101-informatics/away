@@ -12,7 +12,8 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/login") ||
     pathname.startsWith("/auth/error") ||
     pathname.startsWith("/api/auth") ||
-    pathname.startsWith("/api/slack/interactions")
+    pathname.startsWith("/api/slack/interactions") ||
+    pathname.startsWith("/api/slack/commands")
   ) {
     if (pathname.startsWith("/login")) {
       const token = await getToken({ req, secret });
@@ -50,5 +51,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.png$).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.svg$|.*\\.ico$).*)"],
 };

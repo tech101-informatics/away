@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="appBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a237e"/>
+      <stop offset="100%" style="stop-color:#283593"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Dark background matching app -->
+  <rect width="200" height="200" rx="28" fill="url(#appBg)"/>
+
+  <!--
+    Exact V1 geometry from comparison sheet:
+    Plane local coords: nose at (120,60), top wing (0,10),
+    tail notch (18,60), bottom wing (0,110)
+    rotate(-40) then translate to center of 200x200 canvas.
+
+    Visual center of plane group (before rotation) approx at (60,60).
+    After rotate(-40) the visual mass shifts — nudge to (108, 118)
+    so the plane sits centered in the icon.
+  -->
+  <g transform="translate(32, 74) rotate(-40)">
+
+    <!-- Top wing surface -->
+    <path d="M120 60 L0 10 L18 60 Z"
+          fill="white" opacity="0.92"/>
+
+    <!-- Bottom belly -->
+    <path d="M120 60 L18 60 L0 110 Z"
+          fill="white" opacity="0.52"/>
+
+    <!-- Tail fin -->
+    <path d="M18 60 L0 10 L0 35 Z"
+          fill="white" opacity="0.25"/>
+
+    <!-- Center spine crease -->
+    <line x1="120" y1="60" x2="18" y2="60"
+          stroke="#1a237e" stroke-width="1.8"
+          stroke-linecap="round"/>
+
+    <!-- Top leading edge — subtle -->
+    <line x1="120" y1="60" x2="0" y2="10"
+          stroke="white" stroke-width="0.8"
+          stroke-linecap="round" opacity="0.3"/>
+
+    <!-- Motion lines — 3 parallel behind tail -->
+    <line x1="-4"  y1="50" x2="-28" y2="42"
+          stroke="white" stroke-width="2.5"
+          stroke-linecap="round" opacity="0.55"/>
+    <line x1="-2"  y1="62" x2="-26" y2="58"
+          stroke="white" stroke-width="1.8"
+          stroke-linecap="round" opacity="0.35"/>
+    <line x1="-6"  y1="40" x2="-22" y2="34"
+          stroke="white" stroke-width="1.2"
+          stroke-linecap="round" opacity="0.20"/>
+
+  </g>
+</svg>
