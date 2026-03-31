@@ -16,6 +16,7 @@ import {
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 import { PageHeader } from "@/components/away/page-header";
 import { useFetch } from "@/hooks/use-fetch";
@@ -326,51 +327,28 @@ export default function CalendarPage() {
         </CardContent>
       </Card>
 
-      {/* Selected day detail */}
-      {selectedDay && eventMap[selectedDay] && eventMap[selectedDay].length > 0 && (
-        <Card className="mt-4">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold">
-                {format(new Date(selectedDay), "EEEE, MMMM d, yyyy")}
-              </h3>
-              <button
-                onClick={() => setSelectedDay(null)}
-                className="text-xs text-muted-foreground hover:text-foreground"
-              >
-                Close
-              </button>
-            </div>
+      {/* Selected day detail modal */}
+      <Dialog open={!!selectedDay} onOpenChange={() => setSelectedDay(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedDay && format(new Date(selectedDay), "EEEE, MMMM d, yyyy")}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedDay && eventMap[selectedDay] && eventMap[selectedDay].length > 0 ? (
             <div className="space-y-2">
               {eventMap[selectedDay].map((event, i) => (
-                <div key={i} className="flex items-center gap-2.5 py-1.5">
+                <div key={i} className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/40">
                   <div className={cn("w-3 h-3 rounded-full shrink-0", event.color)} />
-                  <span className="text-sm">{event.label}</span>
+                  <span className="text-sm font-medium">{event.label}</span>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {selectedDay && (!eventMap[selectedDay] || eventMap[selectedDay].length === 0) && (
-        <Card className="mt-4">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-semibold">
-                {format(new Date(selectedDay), "EEEE, MMMM d, yyyy")}
-              </h3>
-              <button
-                onClick={() => setSelectedDay(null)}
-                className="text-xs text-muted-foreground hover:text-foreground"
-              >
-                Close
-              </button>
-            </div>
-            <p className="text-sm text-muted-foreground">No events on this day.</p>
-          </CardContent>
-        </Card>
-      )}
+          ) : (
+            <p className="text-sm text-muted-foreground py-4">No events on this day.</p>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
