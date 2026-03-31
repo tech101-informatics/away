@@ -203,6 +203,35 @@ export default function CalendarPage() {
         </div>
       </div>
 
+      {/* Selected day detail — above calendar */}
+      {selectedDay && (
+        <div className="mb-3 px-4 py-3 rounded-xl bg-card ring-1 ring-black/[0.04] shadow-sm">
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-sm font-semibold">
+              {format(new Date(selectedDay), "EEE, MMM d, yyyy")}
+            </p>
+            <button
+              onClick={() => setSelectedDay(null)}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Dismiss
+            </button>
+          </div>
+          {eventMap[selectedDay] && eventMap[selectedDay].length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {eventMap[selectedDay].map((event, i) => (
+                <div key={i} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/50 text-xs">
+                  <div className={cn("w-2 h-2 rounded-full shrink-0", event.color)} />
+                  <span>{event.label}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">No events on this day.</p>
+          )}
+        </div>
+      )}
+
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0 pb-4">
           <Button
@@ -326,36 +355,6 @@ export default function CalendarPage() {
         </CardContent>
       </Card>
 
-      {/* Selected day detail — inline, non-blocking */}
-      {selectedDay && (
-        <Card className="mt-3">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-semibold">
-                {format(new Date(selectedDay), "EEEE, MMMM d, yyyy")}
-              </p>
-              <button
-                onClick={() => setSelectedDay(null)}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Dismiss
-              </button>
-            </div>
-            {eventMap[selectedDay] && eventMap[selectedDay].length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {eventMap[selectedDay].map((event, i) => (
-                  <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 text-sm">
-                    <div className={cn("w-2.5 h-2.5 rounded-full shrink-0", event.color)} />
-                    <span>{event.label}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No events on this day.</p>
-            )}
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
