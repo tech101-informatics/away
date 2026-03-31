@@ -38,6 +38,8 @@ interface LeaveRequestData {
   leaveType: string;
   startDate: string;
   endDate: string;
+  numberOfDays: number;
+  isHalfDay: boolean;
   status: string;
 }
 
@@ -45,6 +47,7 @@ interface WFHRequestData {
   _id: string;
   employeeId: { _id: string; name: string; image?: string };
   date: string;
+  isHalfDay: boolean;
   status: string;
 }
 
@@ -310,7 +313,6 @@ export default function CalendarPage() {
               const events = eventMap[dateStr] || [];
               const isToday = isSameDay(day, today);
               const isCurrentMonth = isSameMonth(day, currentMonth);
-              const weekend = isWeekend(day);
               const hasHoliday = events.some((e) => e.type === "holiday" || e.type === "optional-selected");
               const holidayEvents = events.filter((e) => e.type === "holiday" || e.type === "optional-selected");
               const otherEvents = events.filter((e) => e.type !== "holiday" && e.type !== "optional-selected");
@@ -437,10 +439,10 @@ export default function CalendarPage() {
             <CardTitle className="text-base">Events — {year}</CardTitle>
             <p className="text-xs text-muted-foreground">{yearlyEvents.length} days with events</p>
           </CardHeader>
-          <CardContent className="p-0 flex-1 overflow-hidden">
+          <CardContent className="p-0 flex-1 overflow-hidden -mt-2">
             <div
               ref={sidebarRef}
-              className="h-full overflow-y-auto px-4 pb-4"
+              className="h-full overflow-y-auto px-1 pb-4"
             >
               {yearlyEvents.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-8 text-center">No events this year.</p>
@@ -460,7 +462,7 @@ export default function CalendarPage() {
                         {showMonthHeader && (
                           <div
                             ref={(el) => { monthMarkerRefs.current[format(d, "yyyy-MM")] = el; }}
-                            className="sticky top-0 bg-card z-10 pt-3 pb-1.5"
+                            className="sticky top-0 bg-card z-10 pt-2 pb-1.5"
                           >
                             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{monthLabel}</p>
                           </div>
