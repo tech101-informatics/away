@@ -144,6 +144,9 @@ export default function DashboardPage() {
   const { data: holidays } = useFetch<HolidayCalendarData>(
     `/api/holidays/${currentYear}`
   );
+  const { data: activePolicies } = useFetch<Array<{ leaveType: string; isActive: boolean }>>(
+    "/api/leave-policy"
+  );
   const { data: optionalSelections, refetch: refetchOptional } =
     useFetch<OptionalHolidayData>(`/api/optional-holidays?year=${currentYear}`);
   const {
@@ -323,7 +326,12 @@ export default function DashboardPage() {
     });
   };
 
-  const balances = userData?.leaveBalances || [];
+  const activeLeaveTypes = new Set(
+    (activePolicies || []).filter((p) => p.isActive).map((p) => p.leaveType)
+  );
+  const balances = (userData?.leaveBalances || []).filter(
+    (b) => activeLeaveTypes.size === 0 || activeLeaveTypes.has(b.leaveType)
+  );
   const optionalHolidays = holidays?.holidays?.filter((h) => h.isOptional) || [];
   const selectedNames = new Set(
     optionalSelections?.selectedHolidays?.map((h) => h.name) || []
@@ -747,7 +755,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-lg font-bold tabular-nums">{teamToday.totalActive}</p>
-                  <p className="text-[11px] text-muted-foreground">Total</p>
+                  <p className="text-xs text-muted-foreground">Total</p>
                 </div>
               </div>
             </Card>
@@ -758,7 +766,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-lg font-bold tabular-nums">{teamToday.inOffice}</p>
-                  <p className="text-[11px] text-muted-foreground">In office</p>
+                  <p className="text-xs text-muted-foreground">In office</p>
                 </div>
               </div>
             </Card>
@@ -769,7 +777,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-lg font-bold tabular-nums">{teamToday.onLeave.length}</p>
-                  <p className="text-[11px] text-muted-foreground">On leave</p>
+                  <p className="text-xs text-muted-foreground">On leave</p>
                 </div>
               </div>
             </Card>
@@ -780,7 +788,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-lg font-bold tabular-nums">{teamToday.onWFH.length}</p>
-                  <p className="text-[11px] text-muted-foreground">WFH</p>
+                  <p className="text-xs text-muted-foreground">WFH</p>
                 </div>
               </div>
             </Card>
@@ -827,7 +835,7 @@ export default function DashboardPage() {
                   <div className="flex items-center justify-between">
                     <Badge
                       className={cn(
-                        "font-medium text-[11px]",
+                        "font-medium text-xs",
                         leaveTypeColors[balance.leaveType]
                       )}
                       variant="secondary"
@@ -1008,7 +1016,7 @@ export default function DashboardPage() {
                   <div className="flex items-center gap-2">
                     <Badge
                       className={cn(
-                        "text-[11px] font-medium capitalize",
+                        "text-xs font-medium capitalize",
                         statusColors[request.status]
                       )}
                       variant="secondary"

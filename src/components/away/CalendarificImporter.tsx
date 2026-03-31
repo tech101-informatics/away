@@ -591,7 +591,7 @@ export function CalendarificImporter({
                 </span>
                 <Badge
                   className={cn(
-                    "text-[10px] w-fit",
+                    "text-xs w-fit",
                     getBadgeColor(row.apiType)
                   )}
                   variant="secondary"
@@ -724,7 +724,7 @@ export function CalendarificImporter({
                       disabled={disableDateOutsideYear}
                     />
                     {dateEmpty && (
-                      <p className="text-[11px] text-destructive mt-0.5">
+                      <p className="text-xs text-destructive mt-0.5">
                         Date required
                       </p>
                     )}
@@ -745,12 +745,12 @@ export function CalendarificImporter({
                       )}
                     />
                     {nameInvalid && (
-                      <p className="text-[11px] text-destructive mt-0.5">
+                      <p className="text-xs text-destructive mt-0.5">
                         Min 2 characters
                       </p>
                     )}
                     {dup && (
-                      <p className="text-[11px] text-amber-600 mt-0.5 flex items-center gap-1">
+                      <p className="text-xs text-amber-600 mt-0.5 flex items-center gap-1">
                         <AlertTriangle className="h-3 w-3" />
                         Already exists above
                       </p>

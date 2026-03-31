@@ -290,7 +290,7 @@ export default function CalendarPage() {
                         {/* Desktop pill */}
                         <div
                           className={cn(
-                            "hidden sm:block rounded px-1 py-0.5 text-[11px] font-semibold leading-tight truncate",
+                            "hidden sm:block rounded px-1 py-0.5 text-xs font-semibold leading-tight truncate",
                             event.pillColor || "bg-indigo-500 text-white"
                           )}
                         >
@@ -307,14 +307,14 @@ export default function CalendarPage() {
                         title={event.label}
                       >
                         <div className={cn("w-2.5 h-2.5 sm:w-2 sm:h-2 rounded-full shrink-0", event.color)} />
-                        <span className="hidden sm:inline text-[11px] truncate leading-tight text-muted-foreground">
+                        <span className="hidden sm:inline text-xs truncate leading-tight text-muted-foreground">
                           {event.label}
                         </span>
                       </div>
                     ))}
 
                     {events.length > 3 && (
-                      <span className="text-[9px] sm:text-[10px] text-muted-foreground">
+                      <span className="text-[9px] sm:text-xs text-muted-foreground">
                         +{events.length - 3}
                       </span>
                     )}

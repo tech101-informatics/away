@@ -353,14 +353,14 @@ export default function AdminPage() {
                               {policy.allocatedDays} days/year
                             </span>
                             {policy.carryForward && (
-                              <Badge variant="outline" className="text-[10px]">
+                              <Badge variant="outline" className="text-xs">
                                 Carry forward
                               </Badge>
                             )}
                             <Badge
                               variant="secondary"
                               className={cn(
-                                "text-[10px]",
+                                "text-xs",
                                 policy.isActive
                                   ? "bg-emerald-100 text-emerald-700"
                                   : "bg-gray-100 text-gray-500"
@@ -557,7 +557,7 @@ export default function AdminPage() {
                       <div className="flex items-center gap-2">
                         <Badge
                           className={cn(
-                            "text-[11px] capitalize",
+                            "text-xs capitalize",
                             holidayTypeColors[holiday.type]
                           )}
                           variant="secondary"

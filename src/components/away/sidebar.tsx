@@ -77,19 +77,19 @@ export function Sidebar() {
       <Separator />
 
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Navigation</p>
+        <p className="px-3 mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground/60">Navigation</p>
         {employeeLinks.map((link) => renderLink(link))}
 
         {(role === "manager" || role === "admin") && (
           <>
-            <p className="px-3 mt-4 mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Team</p>
+            <p className="px-3 mt-4 mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground/60">Team</p>
             {managerLinks.map((link) => renderLink(link))}
           </>
         )}
 
         {role === "admin" && (
           <>
-            <p className="px-3 mt-4 mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Admin</p>
+            <p className="px-3 mt-4 mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground/60">Admin</p>
             {adminLinks.map((link) => renderLink(link))}
           </>
         )}

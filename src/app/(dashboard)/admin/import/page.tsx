@@ -302,7 +302,7 @@ export default function AdminImportPage() {
                               <td className="px-3 py-2 tabular-nums">{row.duration}</td>
                               <td className="px-3 py-2 truncate max-w-[120px]">{row.originalType}</td>
                               <td className="px-3 py-2">
-                                <Badge variant="secondary" className="text-[10px] bg-emerald-100 text-emerald-700">
+                                <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-700">
                                   {row.status}
                                 </Badge>
                               </td>

@@ -262,7 +262,7 @@ export default function ManagerPage() {
                 <div key={person._id} className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 text-sm">
                   <Avatar className="h-6 w-6">
                     <AvatarImage src={person.image} />
-                    <AvatarFallback className="text-[10px]">{person.name?.split(" ").map((n) => n[0]).join("")}</AvatarFallback>
+                    <AvatarFallback className="text-xs">{person.name?.split(" ").map((n) => n[0]).join("")}</AvatarFallback>
                   </Avatar>
                   <span className="font-medium">{person.name?.split(" ")[0]}</span>
                   <span className="text-xs text-amber-600 capitalize">{person.leaveType}{person.isHalfDay ? " (half)" : ""}</span>
@@ -272,7 +272,7 @@ export default function ManagerPage() {
                 <div key={person._id} className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 text-sm">
                   <Avatar className="h-6 w-6">
                     <AvatarImage src={person.image} />
-                    <AvatarFallback className="text-[10px]">{person.name?.split(" ").map((n) => n[0]).join("")}</AvatarFallback>
+                    <AvatarFallback className="text-xs">{person.name?.split(" ").map((n) => n[0]).join("")}</AvatarFallback>
                   </Avatar>
                   <span className="font-medium">{person.name?.split(" ")[0]}</span>
                   <span className="text-xs text-blue-600">WFH{person.isHalfDay ? " (half)" : ""}</span>
@@ -340,7 +340,7 @@ export default function ManagerPage() {
                             <div className="flex flex-wrap items-center gap-1.5 mt-1">
                               <Badge
                                 className={cn(
-                                  "text-[11px]",
+                                  "text-xs",
                                   leaveTypeColors[req.leaveType]
                                 )}
                                 variant="secondary"
@@ -367,7 +367,7 @@ export default function ManagerPage() {
                               const others = getOthersOnLeave(req.startDate, req.endDate, req.employeeId?._id);
                               if (others.length === 0) return null;
                               return (
-                                <p className="text-[11px] text-amber-700 mt-1.5">
+                                <p className="text-xs text-amber-700 mt-1.5">
                                   Also off: {others.map((o) => o.name?.split(" ")[0]).join(", ")}
                                 </p>
                               );
@@ -455,7 +455,7 @@ export default function ManagerPage() {
                           </div>
                           <Badge
                             className={cn(
-                              "text-[11px] capitalize",
+                              "text-xs capitalize",
                               statusColors[req.status]
                             )}
                             variant="secondary"
@@ -518,7 +518,7 @@ export default function ManagerPage() {
                               const all = [...othersLeave.map((o) => `${o.name?.split(" ")[0]} (leave)`), ...othersWfh.map((o) => `${o.name?.split(" ")[0]} (WFH)`)];
                               if (all.length === 0) return null;
                               return (
-                                <p className="text-[11px] text-amber-700 mt-1.5">
+                                <p className="text-xs text-amber-700 mt-1.5">
                                   Also off: {all.join(", ")}
                                 </p>
                               );
@@ -602,7 +602,7 @@ export default function ManagerPage() {
                           </div>
                           <Badge
                             className={cn(
-                              "text-[11px] capitalize",
+                              "text-xs capitalize",
                               statusColors[req.status]
                             )}
                             variant="secondary"

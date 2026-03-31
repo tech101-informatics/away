@@ -72,7 +72,7 @@ export function HolidayTable({
               </span>
               <Badge
                 className={cn(
-                  "text-[10px] capitalize w-fit",
+                  "text-xs capitalize w-fit",
                   typeColors[holiday.type] || "bg-gray-100 text-gray-600"
                 )}
                 variant="secondary"

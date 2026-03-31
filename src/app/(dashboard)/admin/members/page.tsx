@@ -447,7 +447,7 @@ export default function AdminMembersPage() {
             </div>
             <div>
               <p className="text-xl sm:text-2xl font-bold tabular-nums">{activeCount}</p>
-              <p className="text-[11px] sm:text-xs text-muted-foreground">Active</p>
+              <p className="text-xs sm:text-xs text-muted-foreground">Active</p>
             </div>
           </div>
         </Card>
@@ -458,7 +458,7 @@ export default function AdminMembersPage() {
             </div>
             <div>
               <p className="text-xl sm:text-2xl font-bold tabular-nums">{pendingSlack}</p>
-              <p className="text-[11px] sm:text-xs text-muted-foreground">Pending</p>
+              <p className="text-xs sm:text-xs text-muted-foreground">Pending</p>
             </div>
           </div>
         </Card>
@@ -469,7 +469,7 @@ export default function AdminMembersPage() {
             </div>
             <div>
               <p className="text-xl sm:text-2xl font-bold tabular-nums">{deactivatedCount}</p>
-              <p className="text-[11px] sm:text-xs text-muted-foreground">Inactive</p>
+              <p className="text-xs sm:text-xs text-muted-foreground">Inactive</p>
             </div>
           </div>
         </Card>
@@ -559,11 +559,11 @@ export default function AdminMembersPage() {
                       placeholder="Join date"
                     />
                     {member.isSlackLinked ? (
-                      <Badge className="bg-emerald-100 text-emerald-700 text-[10px] gap-1 shrink-0" variant="secondary"><Check className="h-3 w-3" /> Linked</Badge>
+                      <Badge className="bg-emerald-100 text-emerald-700 text-xs gap-1 shrink-0" variant="secondary"><Check className="h-3 w-3" /> Linked</Badge>
                     ) : member.isActive ? (
-                      <Badge className="bg-amber-100 text-amber-700 text-[10px] gap-1 shrink-0" variant="secondary"><Clock className="h-3 w-3" /> Pending</Badge>
+                      <Badge className="bg-amber-100 text-amber-700 text-xs gap-1 shrink-0" variant="secondary"><Clock className="h-3 w-3" /> Pending</Badge>
                     ) : (
-                      <Badge className="bg-gray-100 text-gray-500 text-[10px] shrink-0" variant="secondary">Inactive</Badge>
+                      <Badge className="bg-gray-100 text-gray-500 text-xs shrink-0" variant="secondary">Inactive</Badge>
                     )}
                     <div className="flex items-center gap-1 shrink-0">
                       <Button variant="ghost" size="sm" className="text-xs gap-1 h-7" onClick={() => openMemberView(member)}><Eye className="h-3 w-3" /> View</Button>
@@ -592,11 +592,11 @@ export default function AdminMembersPage() {
                         </div>
                       </div>
                       {member.isSlackLinked ? (
-                        <Badge className="bg-emerald-100 text-emerald-700 text-[10px] gap-1 shrink-0" variant="secondary"><Check className="h-3 w-3" /> Linked</Badge>
+                        <Badge className="bg-emerald-100 text-emerald-700 text-xs gap-1 shrink-0" variant="secondary"><Check className="h-3 w-3" /> Linked</Badge>
                       ) : member.isActive ? (
-                        <Badge className="bg-amber-100 text-amber-700 text-[10px] gap-1 shrink-0" variant="secondary"><Clock className="h-3 w-3" /> Pending</Badge>
+                        <Badge className="bg-amber-100 text-amber-700 text-xs gap-1 shrink-0" variant="secondary"><Clock className="h-3 w-3" /> Pending</Badge>
                       ) : (
-                        <Badge className="bg-gray-100 text-gray-500 text-[10px] shrink-0" variant="secondary">Inactive</Badge>
+                        <Badge className="bg-gray-100 text-gray-500 text-xs shrink-0" variant="secondary">Inactive</Badge>
                       )}
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -711,11 +711,11 @@ export default function AdminMembersPage() {
                           </div>
                         </div>
                         {m.isStorepeckerEmail ? (
-                          <Badge className="bg-emerald-100 text-emerald-700 text-[10px] shrink-0 whitespace-nowrap" variant="secondary">
+                          <Badge className="bg-emerald-100 text-emerald-700 text-xs shrink-0 whitespace-nowrap" variant="secondary">
                             Match
                           </Badge>
                         ) : (
-                          <Badge className="bg-amber-100 text-amber-700 text-[10px] shrink-0 whitespace-nowrap" variant="secondary">
+                          <Badge className="bg-amber-100 text-amber-700 text-xs shrink-0 whitespace-nowrap" variant="secondary">
                             Other
                           </Badge>
                         )}
@@ -966,7 +966,7 @@ export default function AdminMembersPage() {
                   <h2 className="text-xl font-bold tracking-tight">{viewMember?.name}</h2>
                   <p className="text-sm text-muted-foreground">{viewMember?.email}</p>
                   <div className="flex flex-wrap items-center gap-2 mt-1">
-                    <Badge variant="secondary" className="text-[10px] capitalize">{viewMember?.role}</Badge>
+                    <Badge variant="secondary" className="text-xs capitalize">{viewMember?.role}</Badge>
                     {viewMember?.managerId && (
                       <span className="text-xs text-muted-foreground">Mgr: {viewMember.managerId.name}</span>
                     )}
@@ -1045,7 +1045,7 @@ export default function AdminMembersPage() {
                       </div>
                     </div>
                     <Badge
-                      className={cn("text-[10px] capitalize shrink-0", statusColorMap[record.status] || "bg-gray-100 text-gray-500")}
+                      className={cn("text-xs capitalize shrink-0", statusColorMap[record.status] || "bg-gray-100 text-gray-500")}
                       variant="secondary"
                     >
                       {record.status}
