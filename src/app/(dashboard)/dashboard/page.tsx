@@ -882,21 +882,30 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {optionalHolidays.map((holiday) => {
+              {optionalHolidays
+                .filter((h) => new Date(h.date) >= new Date(new Date().toDateString()))
+                .map((holiday) => {
                 const isSelected = selectedNames.has(holiday.name);
                 const canSelect = selectionsCount < quota;
                 return (
                   <div
                     key={holiday._id}
                     className={cn(
-                      "flex items-center justify-between p-3 rounded-lg border transition-colors",
-                      isSelected ? "bg-primary/5 border-primary/20" : "hover:bg-muted/50"
+                      "flex items-center justify-between p-3 rounded-lg border-2 transition-colors",
+                      isSelected
+                        ? "bg-emerald-50 border-emerald-300"
+                        : "border-transparent bg-muted/30 hover:bg-muted/50"
                     )}
                   >
                     <div className="flex items-center gap-3">
-                      <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                      <div className={cn(
+                        "p-1.5 rounded-lg",
+                        isSelected ? "bg-emerald-100 text-emerald-600" : "bg-muted text-muted-foreground"
+                      )}>
+                        <CalendarDays className="h-4 w-4" />
+                      </div>
                       <div>
-                        <p className="font-medium text-sm">{holiday.name}</p>
+                        <p className={cn("font-medium text-sm", isSelected && "text-emerald-900")}>{holiday.name}</p>
                         <p className="text-xs text-muted-foreground">
                           {format(new Date(holiday.date), "EEEE, MMMM d, yyyy")}
                         </p>
@@ -904,7 +913,7 @@ export default function DashboardPage() {
                     </div>
                     {isSelected ? (
                       <div className="flex items-center gap-2">
-                        <Badge className="bg-primary/10 text-primary border-0">
+                        <Badge className="bg-emerald-600 text-white border-0">
                           <CheckCircle2 className="h-3 w-3 mr-1" /> Selected
                         </Badge>
                         <Button
