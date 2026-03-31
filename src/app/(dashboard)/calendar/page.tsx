@@ -292,7 +292,6 @@ export default function CalendarPage() {
                     isCurrentMonth && "cursor-pointer group/cell",
                     isCurrentMonth && hasHoliday && `border-l-[3px] ${holidayBorderColor}`,
                     isToday && "ring-2 ring-primary/50 ring-inset bg-primary/[0.03]",
-                    selectedDay === dateStr && "ring-2 ring-foreground/20 ring-inset bg-accent/50",
                     isCurrentMonth && events.length > 0 && "hover:bg-accent/40"
                   )}
                 >
@@ -325,9 +324,11 @@ export default function CalendarPage() {
                   )}
                   <div
                     className={cn(
-                      "text-xs font-medium mb-1",
+                      "text-xs font-medium mb-1 w-6 h-6 flex items-center justify-center rounded-full",
                       isToday
-                        ? "bg-primary text-primary-foreground w-6 h-6 rounded-full flex items-center justify-center"
+                        ? "bg-primary text-primary-foreground"
+                        : selectedDay === dateStr
+                        ? "bg-foreground text-background"
                         : hasHoliday
                         ? "text-foreground font-semibold"
                         : "text-muted-foreground"
@@ -394,7 +395,7 @@ export default function CalendarPage() {
             </DialogTitle>
           </DialogHeader>
           {selectedDay && eventMap[selectedDay] && eventMap[selectedDay].length > 0 ? (
-            <div className="space-y-2">
+            <div className="space-y-2 mt-2">
               {eventMap[selectedDay].map((event, i) => (
                 <div key={i} className="p-3 rounded-sm bg-muted/40">
                   <div className="flex items-center gap-2.5">
