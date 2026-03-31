@@ -304,6 +304,16 @@ export default function DashboardPage() {
     });
   };
 
+  const handleOptionalDeselect = (holidayId: string) => {
+    optionalAction.execute("/api/optional-holidays", {
+      method: "DELETE",
+      body: JSON.stringify({
+        holidayId,
+        year: currentYear,
+      }),
+    });
+  };
+
   const handleCancel = (type: "leave" | "wfh", id: string) => {
     const url = type === "leave" ? `/api/leave-requests/${id}` : `/api/wfh-requests/${id}`;
     cancelAction.execute(url, {
@@ -893,9 +903,15 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     {isSelected ? (
-                      <Badge className="bg-primary/10 text-primary border-0">
-                        <CheckCircle2 className="h-3 w-3 mr-1" /> Selected
-                      </Badge>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 border-primary/30 text-primary hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
+                        disabled={optionalAction.loading}
+                        onClick={() => handleOptionalDeselect(holiday._id)}
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Selected
+                      </Button>
                     ) : (
                       <Button
                         size="sm"

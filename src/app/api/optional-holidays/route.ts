@@ -71,3 +71,30 @@ export async function POST(req: Request) {
 
   return NextResponse.json(selection);
 }
+
+export async function DELETE(req: Request) {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  await connectDB();
+  const body = await req.json();
+  const { holidayId, year } = body;
+
+  const selection = await EmployeeOptionalHoliday.findOne({
+    employeeId: session.user.id,
+    year,
+  });
+
+  if (!selection) {
+    return NextResponse.json({ error: "No selections found" }, { status: 404 });
+  }
+
+  selection.selectedHolidays = selection.selectedHolidays.filter(
+    (h: { holidayId: { toString(): string } }) => h.holidayId.toString() !== holidayId
+  );
+  await selection.save();
+
+  return NextResponse.json(selection);
+}
