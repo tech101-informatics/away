@@ -277,6 +277,10 @@ export default function CalendarPage() {
               const holidayEvents = events.filter((e) => e.type === "holiday" || e.type === "optional-selected");
               const otherEvents = events.filter((e) => e.type !== "holiday" && e.type !== "optional-selected");
               const tooltipBelow = i < 14;
+              // Get the first holiday's color for the left border
+              const holidayBorderColor = hasHoliday
+                ? (holidayEvents[0]?.color || "bg-indigo-500").replace("bg-", "border-l-")
+                : "";
 
               return (
                 <div
@@ -286,7 +290,7 @@ export default function CalendarPage() {
                     "relative min-h-[56px] sm:min-h-[100px] p-1 sm:p-1.5 bg-card transition-colors cursor-pointer group/cell",
                     !isCurrentMonth && "opacity-40",
                     weekend && "bg-muted/40",
-                    hasHoliday && "bg-indigo-50/60",
+                    hasHoliday && `border-l-[3px] ${holidayBorderColor}`,
                     isToday && "ring-2 ring-primary/50 ring-inset bg-primary/[0.03]",
                     selectedDay === dateStr && "ring-2 ring-foreground/20 ring-inset bg-accent/50",
                     events.length > 0 && "hover:bg-accent/40"
@@ -325,7 +329,7 @@ export default function CalendarPage() {
                       isToday
                         ? "bg-primary text-primary-foreground w-6 h-6 rounded-full flex items-center justify-center"
                         : hasHoliday
-                        ? "text-indigo-600 font-semibold"
+                        ? "text-foreground font-semibold"
                         : "text-muted-foreground"
                     )}
                   >
