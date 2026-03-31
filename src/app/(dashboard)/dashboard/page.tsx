@@ -324,8 +324,8 @@ export default function DashboardPage() {
 
   const balances = userData?.leaveBalances || [];
   const optionalHolidays = holidays?.holidays?.filter((h) => h.isOptional) || [];
-  const selectedIds = new Set(
-    optionalSelections?.selectedHolidays?.map((h) => String(h.holidayId)) || []
+  const selectedNames = new Set(
+    optionalSelections?.selectedHolidays?.map((h) => h.name) || []
   );
   const quota = holidays?.optionalHolidayQuota || 2;
   const selectionsCount = optionalSelections?.selectedHolidays?.length || 0;
@@ -883,7 +883,7 @@ export default function DashboardPage() {
           <CardContent>
             <div className="space-y-3">
               {optionalHolidays.map((holiday) => {
-                const isSelected = selectedIds.has(String(holiday._id));
+                const isSelected = selectedNames.has(holiday.name);
                 const canSelect = selectionsCount < quota;
                 return (
                   <div
