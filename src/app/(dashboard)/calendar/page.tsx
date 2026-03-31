@@ -252,17 +252,12 @@ export default function CalendarPage() {
               const holidayEvents = events.filter((e) => e.type === "holiday" || e.type === "optional-selected");
               const otherEvents = events.filter((e) => e.type !== "holiday" && e.type !== "optional-selected");
 
-              // Build tooltip text for hover
-              const tooltipLines = events.map((e) => e.label);
-              const tooltipText = tooltipLines.length > 0 ? tooltipLines.join("\n") : "";
-
               return (
                 <div
                   key={i}
                   onClick={() => setSelectedDay(selectedDay === dateStr ? null : dateStr)}
-                  title={tooltipText}
                   className={cn(
-                    "min-h-[56px] sm:min-h-[100px] p-1 sm:p-1.5 bg-card transition-colors cursor-pointer group/cell",
+                    "relative min-h-[56px] sm:min-h-[100px] p-1 sm:p-1.5 bg-card transition-colors cursor-pointer group/cell",
                     !isCurrentMonth && "opacity-40",
                     weekend && "bg-muted/40",
                     hasHoliday && "bg-indigo-50/60",
@@ -271,6 +266,18 @@ export default function CalendarPage() {
                     events.length > 0 && "hover:bg-accent/40"
                   )}
                 >
+                  {/* Hover tooltip — desktop only */}
+                  {events.length > 0 && (
+                    <div className="hidden sm:group-hover/cell:block absolute z-30 bottom-full left-1/2 -translate-x-1/2 mb-1 w-max max-w-[220px] px-3 py-2 rounded-lg bg-foreground text-background text-xs shadow-lg pointer-events-none">
+                      {events.map((e, ei) => (
+                        <div key={ei} className="flex items-center gap-1.5 py-0.5">
+                          <div className={cn("w-2 h-2 rounded-full shrink-0", e.color.replace("bg-", "bg-"))} style={{ opacity: 0.9 }} />
+                          <span className="truncate">{e.label}</span>
+                        </div>
+                      ))}
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-foreground" />
+                    </div>
+                  )}
                   <div
                     className={cn(
                       "text-xs font-medium mb-1",
