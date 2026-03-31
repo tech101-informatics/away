@@ -97,14 +97,28 @@ export default function CalendarPage() {
 
   // Build a map: date string -> events
   const eventMap = useMemo(() => {
-    const map: Record<string, Array<{ type: string; label: string; color: string; pillColor?: string }>> = {};
+    interface CalEvent {
+      type: string;
+      label: string;
+      color: string;
+      pillColor?: string;
+      // Tooltip details
+      holidayType?: string;
+      leaveType?: string;
+      status?: string;
+      duration?: string;
+      numberOfDays?: number;
+      employeeName?: string;
+    }
 
-    const addEvent = (dateStr: string, event: { type: string; label: string; color: string; pillColor?: string }) => {
+    const map: Record<string, CalEvent[]> = {};
+
+    const addEvent = (dateStr: string, event: CalEvent) => {
       if (!map[dateStr]) map[dateStr] = [];
       map[dateStr].push(event);
     };
 
-    // Holidays — these render as prominent pills
+    // Holidays
     (holidays?.holidays || []).forEach((h) => {
       const dateStr = format(new Date(h.date), "yyyy-MM-dd");
       const pillColors: Record<string, string> = {
@@ -112,7 +126,6 @@ export default function CalendarPage() {
         company: "bg-orange-500 text-white",
         optional: "bg-teal-500 text-white",
       };
-      // Optional holidays get a distinct color regardless of their base type
       const pill = h.isOptional
         ? "bg-teal-500 text-white"
         : pillColors[h.type] || "bg-gray-400 text-white";
@@ -121,6 +134,7 @@ export default function CalendarPage() {
         label: h.isOptional ? `${h.name} ✦` : h.name,
         color: h.isOptional ? "bg-teal-500" : "bg-indigo-500",
         pillColor: pill,
+        holidayType: h.isOptional ? "Optional" : h.type.charAt(0).toUpperCase() + h.type.slice(1),
       });
     });
 
@@ -132,6 +146,7 @@ export default function CalendarPage() {
         label: h.name,
         color: "bg-yellow-400",
         pillColor: "bg-yellow-400 text-yellow-900",
+        holidayType: "Optional (selected)",
       });
     });
 
@@ -141,13 +156,19 @@ export default function CalendarPage() {
       const start = new Date(lr.startDate);
       const end = new Date(lr.endDate);
       const days = eachDayOfInterval({ start, end });
+      const leaveLabel = lr.leaveType.charAt(0).toUpperCase() + lr.leaveType.slice(1);
       days.forEach((d) => {
         if (!isWeekend(d)) {
           const dateStr = format(d, "yyyy-MM-dd");
           addEvent(dateStr, {
             type: "leave",
-            label: `${lr.employeeId?.name || "You"} - Leave`,
+            label: `${lr.employeeId?.name || "You"} - ${leaveLabel}`,
             color: lr.status === "approved" ? "bg-emerald-500" : "bg-gray-300",
+            leaveType: leaveLabel,
+            status: lr.status,
+            duration: lr.isHalfDay ? "Half day" : "Full day",
+            numberOfDays: lr.numberOfDays,
+            employeeName: lr.employeeId?.name || "You",
           });
         }
       });
@@ -161,6 +182,10 @@ export default function CalendarPage() {
         type: "wfh",
         label: `${wr.employeeId?.name || "You"} - WFH`,
         color: wr.status === "approved" ? "bg-blue-500" : "bg-gray-300",
+        leaveType: "WFH",
+        status: wr.status,
+        duration: (wr as unknown as { isHalfDay?: boolean }).isHalfDay ? "Half day" : "Full day",
+        employeeName: wr.employeeId?.name || "You",
       });
     });
 
@@ -268,11 +293,20 @@ export default function CalendarPage() {
                 >
                   {/* Hover tooltip — desktop only */}
                   {events.length > 0 && (
-                    <div className="hidden sm:group-hover/cell:block absolute z-30 bottom-full left-1/2 -translate-x-1/2 mb-1 w-max max-w-[220px] px-3 py-2 rounded-lg bg-foreground text-background text-xs shadow-lg pointer-events-none">
+                    <div className="hidden sm:group-hover/cell:block absolute z-30 bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-max max-w-[280px] px-3 py-2.5 rounded-lg bg-foreground text-background text-xs shadow-lg pointer-events-none">
                       {events.map((e, ei) => (
-                        <div key={ei} className="flex items-center gap-1.5 py-0.5">
-                          <div className={cn("w-2 h-2 rounded-full shrink-0", e.color.replace("bg-", "bg-"))} style={{ opacity: 0.9 }} />
-                          <span className="truncate">{e.label}</span>
+                        <div key={ei} className="py-1 border-b border-background/10 last:border-0">
+                          <div className="flex items-center gap-1.5">
+                            <div className={cn("w-2 h-2 rounded-full shrink-0", e.color)} />
+                            <span className="font-medium truncate">{e.label}</span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5 ml-3.5 text-background/60">
+                            {e.holidayType && <span>{e.holidayType} holiday</span>}
+                            {e.leaveType && <span>{e.leaveType}</span>}
+                            {e.duration && <span>· {e.duration}</span>}
+                            {e.numberOfDays && e.numberOfDays > 1 && <span>· {e.numberOfDays}d total</span>}
+                            {e.status && <span>· {e.status}</span>}
+                          </div>
                         </div>
                       ))}
                       <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-foreground" />
@@ -351,9 +385,23 @@ export default function CalendarPage() {
           {selectedDay && eventMap[selectedDay] && eventMap[selectedDay].length > 0 ? (
             <div className="space-y-2">
               {eventMap[selectedDay].map((event, i) => (
-                <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-muted/40">
-                  <div className={cn("w-3 h-3 rounded-full shrink-0", event.color)} />
-                  <span className="text-sm font-medium">{event.label}</span>
+                <div key={i} className="p-3 rounded-lg bg-muted/40">
+                  <div className="flex items-center gap-2.5">
+                    <div className={cn("w-3 h-3 rounded-full shrink-0", event.color)} />
+                    <span className="text-sm font-semibold">{event.label}</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 ml-5 text-xs text-muted-foreground">
+                    {event.holidayType && <span>{event.holidayType} holiday</span>}
+                    {event.leaveType && <span>Type: {event.leaveType}</span>}
+                    {event.duration && <span>{event.duration}</span>}
+                    {event.numberOfDays && event.numberOfDays > 1 && <span>{event.numberOfDays} days total</span>}
+                    {event.status && (
+                      <span className={cn(
+                        "capitalize",
+                        event.status === "approved" ? "text-emerald-600" : "text-amber-600"
+                      )}>{event.status}</span>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
