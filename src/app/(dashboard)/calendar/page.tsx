@@ -429,16 +429,18 @@ export default function CalendarPage() {
 
       {/* Year Events Sidebar */}
       <div className="lg:w-80 shrink-0">
-        <Card className="lg:sticky lg:top-4">
-          <CardHeader className="pb-3">
+        <Card
+          className="lg:sticky lg:top-4 flex flex-col"
+          style={calendarHeight > 0 ? { height: `${calendarHeight}px` } : undefined}
+        >
+          <CardHeader className="pb-3 shrink-0">
             <CardTitle className="text-base">Events — {year}</CardTitle>
             <p className="text-xs text-muted-foreground">{yearlyEvents.length} days with events</p>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className="p-0 flex-1 overflow-hidden">
             <div
               ref={sidebarRef}
-              className="overflow-y-auto px-4 pb-4"
-              style={{ maxHeight: calendarHeight > 0 ? `${calendarHeight - 70}px` : "500px" }}
+              className="h-full overflow-y-auto px-4 pb-4"
             >
               {yearlyEvents.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-8 text-center">No events this year.</p>
