@@ -207,16 +207,27 @@ export default function CalendarPage() {
     return all;
   }, [eventMap, year]);
 
-  // Auto-scroll sidebar to today
+  // Auto-scroll sidebar to current month
   const sidebarRef = useRef<HTMLDivElement>(null);
-  const todayMarkerRef = useRef<HTMLDivElement>(null);
+  const monthMarkerRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const calendarCardRef = useRef<HTMLDivElement>(null);
+  const [calendarHeight, setCalendarHeight] = useState(0);
+
+  const currentMonthKey = format(currentMonth, "yyyy-MM");
 
   useEffect(() => {
-    if (todayMarkerRef.current && sidebarRef.current) {
-      const offset = todayMarkerRef.current.offsetTop - sidebarRef.current.offsetTop - 20;
-      sidebarRef.current.scrollTop = Math.max(0, offset);
+    if (calendarCardRef.current) {
+      setCalendarHeight(calendarCardRef.current.offsetHeight);
     }
-  }, [yearlyEvents]);
+  }, [currentMonth, yearlyEvents]);
+
+  useEffect(() => {
+    const marker = monthMarkerRefs.current[currentMonthKey];
+    if (marker && sidebarRef.current) {
+      const offset = marker.offsetTop - sidebarRef.current.offsetTop;
+      sidebarRef.current.scrollTo({ top: Math.max(0, offset), behavior: "smooth" });
+    }
+  }, [currentMonthKey, yearlyEvents]);
 
   return (
     <div>
@@ -256,7 +267,7 @@ export default function CalendarPage() {
       <div className="flex flex-col lg:flex-row gap-6">
       {/* Calendar */}
       <div className="flex-1 min-w-0">
-      <Card>
+      <Card ref={calendarCardRef}>
         <CardHeader className="flex-row items-center justify-between space-y-0 pb-4">
           <Button
             variant="outline"
@@ -426,7 +437,8 @@ export default function CalendarPage() {
           <CardContent className="p-0">
             <div
               ref={sidebarRef}
-              className="max-h-[500px] lg:max-h-[calc(100vh-200px)] overflow-y-auto px-4 pb-4"
+              className="overflow-y-auto px-4 pb-4"
+              style={{ maxHeight: calendarHeight > 0 ? `${calendarHeight - 70}px` : "500px" }}
             >
               {yearlyEvents.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-8 text-center">No events this year.</p>
@@ -444,12 +456,14 @@ export default function CalendarPage() {
                     return (
                       <div key={date}>
                         {showMonthHeader && (
-                          <div className="sticky top-0 bg-card z-10 pt-3 pb-1.5">
+                          <div
+                            ref={(el) => { monthMarkerRefs.current[format(d, "yyyy-MM")] = el; }}
+                            className="sticky top-0 bg-card z-10 pt-3 pb-1.5"
+                          >
                             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{monthLabel}</p>
                           </div>
                         )}
                         <div
-                          ref={isToday2 ? todayMarkerRef : undefined}
                           className={cn(
                             "py-3 border-b border-border/50",
                             isPast && "opacity-40",
