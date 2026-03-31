@@ -288,7 +288,6 @@ export default function CalendarPage() {
                   onClick={() => setSelectedDay(selectedDay === dateStr ? null : dateStr)}
                   className={cn(
                     "relative min-h-[56px] sm:min-h-[100px] p-1 sm:p-1.5 bg-card transition-colors cursor-pointer group/cell",
-                    !isCurrentMonth && "opacity-40",
                     hasHoliday && `border-l-[3px] ${holidayBorderColor}`,
                     isToday && "ring-2 ring-primary/50 ring-inset bg-primary/[0.03]",
                     selectedDay === dateStr && "ring-2 ring-foreground/20 ring-inset bg-accent/50",
