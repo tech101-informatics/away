@@ -16,6 +16,7 @@ import {
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 import { PageHeader } from "@/components/away/page-header";
 import { useFetch } from "@/hooks/use-fetch";
@@ -203,35 +204,6 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* Selected day detail — above calendar */}
-      {selectedDay && (
-        <div className="mb-3 px-4 py-3 rounded-xl bg-card ring-1 ring-black/[0.04] shadow-sm">
-          <div className="flex items-center justify-between mb-1.5">
-            <p className="text-sm font-semibold">
-              {format(new Date(selectedDay), "EEE, MMM d, yyyy")}
-            </p>
-            <button
-              onClick={() => setSelectedDay(null)}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Dismiss
-            </button>
-          </div>
-          {eventMap[selectedDay] && eventMap[selectedDay].length > 0 ? (
-            <div className="flex flex-wrap gap-1.5">
-              {eventMap[selectedDay].map((event, i) => (
-                <div key={i} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/50 text-xs">
-                  <div className={cn("w-2 h-2 rounded-full shrink-0", event.color)} />
-                  <span>{event.label}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs text-muted-foreground">No events on this day.</p>
-          )}
-        </div>
-      )}
-
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0 pb-4">
           <Button
@@ -280,17 +252,23 @@ export default function CalendarPage() {
               const holidayEvents = events.filter((e) => e.type === "holiday" || e.type === "optional-selected");
               const otherEvents = events.filter((e) => e.type !== "holiday" && e.type !== "optional-selected");
 
+              // Build tooltip text for hover
+              const tooltipLines = events.map((e) => e.label);
+              const tooltipText = tooltipLines.length > 0 ? tooltipLines.join("\n") : "";
+
               return (
                 <div
                   key={i}
                   onClick={() => setSelectedDay(selectedDay === dateStr ? null : dateStr)}
+                  title={tooltipText}
                   className={cn(
-                    "min-h-[56px] sm:min-h-[100px] p-1 sm:p-1.5 bg-card transition-colors cursor-pointer",
+                    "min-h-[56px] sm:min-h-[100px] p-1 sm:p-1.5 bg-card transition-colors cursor-pointer group/cell",
                     !isCurrentMonth && "opacity-40",
                     weekend && "bg-muted/40",
                     hasHoliday && "bg-indigo-50/60",
                     isToday && "ring-2 ring-primary/50 ring-inset bg-primary/[0.03]",
-                    selectedDay === dateStr && "ring-2 ring-foreground/20 ring-inset bg-accent/50"
+                    selectedDay === dateStr && "ring-2 ring-foreground/20 ring-inset bg-accent/50",
+                    events.length > 0 && "hover:bg-accent/40"
                   )}
                 >
                   <div
@@ -355,6 +333,28 @@ export default function CalendarPage() {
         </CardContent>
       </Card>
 
+      {/* Day detail modal — opens on click */}
+      <Dialog open={!!selectedDay} onOpenChange={() => setSelectedDay(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedDay && format(new Date(selectedDay), "EEEE, MMMM d, yyyy")}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedDay && eventMap[selectedDay] && eventMap[selectedDay].length > 0 ? (
+            <div className="space-y-2">
+              {eventMap[selectedDay].map((event, i) => (
+                <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-muted/40">
+                  <div className={cn("w-3 h-3 rounded-full shrink-0", event.color)} />
+                  <span className="text-sm font-medium">{event.label}</span>
+                </div>
+              ))}
+            </div>
+          ) : selectedDay ? (
+            <p className="text-sm text-muted-foreground py-4">No events on this day.</p>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
