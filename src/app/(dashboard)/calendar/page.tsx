@@ -266,7 +266,7 @@ export default function CalendarPage() {
           </div>
 
           {/* Calendar grid */}
-          <div className="grid grid-cols-7 gap-px bg-border rounded-lg overflow-hidden">
+          <div className="grid grid-cols-7 gap-px bg-border rounded-lg">
             {weeks.flat().map((day, i) => {
               const dateStr = format(day, "yyyy-MM-dd");
               const events = eventMap[dateStr] || [];
@@ -276,6 +276,7 @@ export default function CalendarPage() {
               const hasHoliday = events.some((e) => e.type === "holiday" || e.type === "optional-selected");
               const holidayEvents = events.filter((e) => e.type === "holiday" || e.type === "optional-selected");
               const otherEvents = events.filter((e) => e.type !== "holiday" && e.type !== "optional-selected");
+              const tooltipBelow = i < 14;
 
               return (
                 <div
@@ -291,25 +292,31 @@ export default function CalendarPage() {
                     events.length > 0 && "hover:bg-accent/40"
                   )}
                 >
-                  {/* Hover tooltip — desktop only */}
+                  {/* Hover tooltip — desktop only, flips for top rows */}
                   {events.length > 0 && (
-                    <div className="hidden sm:group-hover/cell:block absolute z-30 bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-max max-w-[280px] px-3 py-2.5 rounded-lg bg-foreground text-background text-xs shadow-lg pointer-events-none">
+                    <div className={cn(
+                      "hidden sm:group-hover/cell:block absolute z-50 left-1/2 -translate-x-1/2 w-max max-w-[280px] px-3 py-2.5 rounded-lg bg-foreground text-background text-xs shadow-lg pointer-events-none",
+                      tooltipBelow ? "top-full mt-1" : "bottom-full mb-1"
+                    )}>
                       {events.map((e, ei) => (
-                        <div key={ei} className="py-1 border-b border-background/10 last:border-0">
+                        <div key={ei} className="py-1.5 border-b border-background/10 last:border-0">
                           <div className="flex items-center gap-1.5">
                             <div className={cn("w-2 h-2 rounded-full shrink-0", e.color)} />
                             <span className="font-medium truncate">{e.label}</span>
                           </div>
-                          <div className="flex items-center gap-2 mt-0.5 ml-3.5 text-background/60">
+                          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-0.5 ml-3.5 text-background/60">
                             {e.holidayType && <span>{e.holidayType} holiday</span>}
                             {e.leaveType && <span>{e.leaveType}</span>}
                             {e.duration && <span>· {e.duration}</span>}
                             {e.numberOfDays && e.numberOfDays > 1 && <span>· {e.numberOfDays}d total</span>}
-                            {e.status && <span>· {e.status}</span>}
+                            {e.status && <span className="capitalize">· {e.status}</span>}
                           </div>
                         </div>
                       ))}
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-foreground" />
+                      <div className={cn(
+                        "absolute left-1/2 -translate-x-1/2 w-0 h-0 border-x-4 border-x-transparent",
+                        tooltipBelow ? "bottom-full border-b-4 border-b-foreground" : "top-full border-t-4 border-t-foreground"
+                      )} />
                     </div>
                   )}
                   <div
@@ -385,12 +392,12 @@ export default function CalendarPage() {
           {selectedDay && eventMap[selectedDay] && eventMap[selectedDay].length > 0 ? (
             <div className="space-y-2">
               {eventMap[selectedDay].map((event, i) => (
-                <div key={i} className="p-3 rounded-lg bg-muted/40">
+                <div key={i} className="p-3 rounded-sm bg-muted/40">
                   <div className="flex items-center gap-2.5">
                     <div className={cn("w-3 h-3 rounded-full shrink-0", event.color)} />
                     <span className="text-sm font-semibold">{event.label}</span>
                   </div>
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 ml-5 text-xs text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 ml-5 text-xs text-muted-foreground">
                     {event.holidayType && <span>{event.holidayType} holiday</span>}
                     {event.leaveType && <span>Type: {event.leaveType}</span>}
                     {event.duration && <span>{event.duration}</span>}
