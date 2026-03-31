@@ -304,11 +304,12 @@ export default function DashboardPage() {
     });
   };
 
-  const handleOptionalDeselect = (holidayId: string) => {
+  const handleOptionalDeselect = (holidayId: string, holidayName: string) => {
     optionalAction.execute("/api/optional-holidays", {
       method: "DELETE",
       body: JSON.stringify({
         holidayId,
+        name: holidayName,
         year: currentYear,
       }),
     });
@@ -921,7 +922,7 @@ export default function DashboardPage() {
                           variant="ghost"
                           className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
                           disabled={optionalAction.loading}
-                          onClick={() => handleOptionalDeselect(holiday._id)}
+                          onClick={() => handleOptionalDeselect(holiday._id, holiday.name)}
                         >
                           <XCircle className="h-3.5 w-3.5 mr-1" /> Remove
                         </Button>

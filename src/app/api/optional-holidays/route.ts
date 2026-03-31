@@ -80,7 +80,7 @@ export async function DELETE(req: Request) {
 
   await connectDB();
   const body = await req.json();
-  const { holidayId, year } = body;
+  const { holidayId, name, year } = body;
 
   const selection = await EmployeeOptionalHoliday.findOne({
     employeeId: session.user.id,
@@ -91,8 +91,12 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "No selections found" }, { status: 404 });
   }
 
+  // Match by name (survives calendar reimport) or by ID as fallback
   selection.selectedHolidays = selection.selectedHolidays.filter(
-    (h: { holidayId: { toString(): string } }) => h.holidayId.toString() !== holidayId
+    (h: { holidayId: { toString(): string }; name: string }) => {
+      if (name) return h.name !== name;
+      return h.holidayId.toString() !== holidayId;
+    }
   );
   await selection.save();
 
