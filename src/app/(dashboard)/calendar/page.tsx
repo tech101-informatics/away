@@ -285,18 +285,19 @@ export default function CalendarPage() {
               return (
                 <div
                   key={i}
-                  onClick={() => setSelectedDay(selectedDay === dateStr ? null : dateStr)}
+                  onClick={() => isCurrentMonth && setSelectedDay(selectedDay === dateStr ? null : dateStr)}
                   className={cn(
-                    "relative min-h-[56px] sm:min-h-[100px] p-1 sm:p-1.5 bg-card transition-colors cursor-pointer group/cell",
+                    "relative min-h-[56px] sm:min-h-[100px] p-1 sm:p-1.5 bg-card transition-colors",
                     !isCurrentMonth && "[&_*]:opacity-30",
-                    hasHoliday && `border-l-[3px] ${holidayBorderColor}`,
+                    isCurrentMonth && "cursor-pointer group/cell",
+                    isCurrentMonth && hasHoliday && `border-l-[3px] ${holidayBorderColor}`,
                     isToday && "ring-2 ring-primary/50 ring-inset bg-primary/[0.03]",
                     selectedDay === dateStr && "ring-2 ring-foreground/20 ring-inset bg-accent/50",
-                    events.length > 0 && "hover:bg-accent/40"
+                    isCurrentMonth && events.length > 0 && "hover:bg-accent/40"
                   )}
                 >
-                  {/* Hover tooltip — desktop only, flips for top rows */}
-                  {events.length > 0 && (
+                  {/* Hover tooltip — desktop only, current month only */}
+                  {isCurrentMonth && events.length > 0 && (
                     <div className={cn(
                       "hidden sm:group-hover/cell:block absolute z-50 left-1/2 -translate-x-1/2 w-max max-w-[280px] px-3 py-2.5 rounded-lg bg-foreground text-background text-xs shadow-lg pointer-events-none",
                       tooltipBelow ? "top-full mt-1" : "bottom-full mb-1"
