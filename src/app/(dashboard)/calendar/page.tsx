@@ -291,7 +291,6 @@ export default function CalendarPage() {
                     !isCurrentMonth && "[&_*]:opacity-30",
                     isCurrentMonth && "cursor-pointer group/cell",
                     isCurrentMonth && hasHoliday && `border-l-[3px] ${holidayBorderColor}`,
-                    isToday && "ring-2 ring-primary/50 ring-inset bg-primary/[0.03]",
                     isCurrentMonth && events.length > 0 && "hover:bg-accent/40"
                   )}
                 >
@@ -325,7 +324,9 @@ export default function CalendarPage() {
                   <div
                     className={cn(
                       "text-xs font-medium mb-1 w-6 h-6 flex items-center justify-center rounded-full",
-                      isToday
+                      isToday && selectedDay === dateStr
+                        ? "bg-foreground text-background"
+                        : isToday
                         ? "bg-primary text-primary-foreground"
                         : selectedDay === dateStr
                         ? "bg-foreground text-background"
