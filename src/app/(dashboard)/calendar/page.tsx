@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 
 import {
   format,
@@ -193,6 +193,30 @@ export default function CalendarPage() {
   }, [holidays, leaveRequests, wfhRequests, optionalSelections]);
 
   const today = new Date();
+  const todayStr = format(today, "yyyy-MM-dd");
+
+  // Build sorted yearly events list for sidebar
+  const yearlyEvents = useMemo(() => {
+    const all: Array<{ date: string; events: typeof eventMap[string] }> = [];
+    for (const [date, events] of Object.entries(eventMap)) {
+      if (events.length > 0 && date.startsWith(String(year))) {
+        all.push({ date, events });
+      }
+    }
+    all.sort((a, b) => a.date.localeCompare(b.date));
+    return all;
+  }, [eventMap, year]);
+
+  // Auto-scroll sidebar to today
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  const todayMarkerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (todayMarkerRef.current && sidebarRef.current) {
+      const offset = todayMarkerRef.current.offsetTop - sidebarRef.current.offsetTop - 20;
+      sidebarRef.current.scrollTop = Math.max(0, offset);
+    }
+  }, [yearlyEvents]);
 
   return (
     <div>
@@ -229,6 +253,9 @@ export default function CalendarPage() {
         </div>
       </div>
 
+      <div className="flex flex-col lg:flex-row gap-6">
+      {/* Calendar */}
+      <div className="flex-1 min-w-0">
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0 pb-4">
           <Button
@@ -386,6 +413,81 @@ export default function CalendarPage() {
           </div>
         </CardContent>
       </Card>
+
+      </div>
+
+      {/* Year Events Sidebar */}
+      <div className="lg:w-80 shrink-0">
+        <Card className="lg:sticky lg:top-4">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Events — {year}</CardTitle>
+            <p className="text-xs text-muted-foreground">{yearlyEvents.length} days with events</p>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div
+              ref={sidebarRef}
+              className="max-h-[500px] lg:max-h-[calc(100vh-200px)] overflow-y-auto px-4 pb-4"
+            >
+              {yearlyEvents.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-8 text-center">No events this year.</p>
+              ) : (
+                <div className="space-y-0">
+                  {yearlyEvents.map(({ date, events: dayEvents }) => {
+                    const d = new Date(date);
+                    const isPast = date < todayStr;
+                    const isToday2 = date === todayStr;
+                    const monthLabel = format(d, "MMMM");
+                    const prevDate = yearlyEvents[yearlyEvents.indexOf(yearlyEvents.find((e) => e.date === date)!) - 1]?.date;
+                    const prevMonth = prevDate ? format(new Date(prevDate), "MMMM") : "";
+                    const showMonthHeader = monthLabel !== prevMonth;
+
+                    return (
+                      <div key={date}>
+                        {showMonthHeader && (
+                          <div className="sticky top-0 bg-card z-10 pt-3 pb-1.5">
+                            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{monthLabel}</p>
+                          </div>
+                        )}
+                        <div
+                          ref={isToday2 ? todayMarkerRef : undefined}
+                          className={cn(
+                            "py-3 border-b border-border/50",
+                            isPast && "opacity-40",
+                            isToday2 && "bg-primary/5 -mx-4 px-4 rounded-lg border-none"
+                          )}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <p className={cn("text-xs tabular-nums", isToday2 ? "font-bold text-primary" : "text-muted-foreground")}>
+                              {format(d, "EEE, MMM d")}
+                              {isToday2 && <span className="ml-1.5 text-primary font-medium">Today</span>}
+                            </p>
+                          </div>
+                          {dayEvents.map((event, ei) => (
+                            <div key={ei} className="flex items-start gap-2 mt-1.5">
+                              <div className={cn("w-2 h-2 rounded-full shrink-0 mt-1.5", event.color)} />
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium leading-snug">{event.label}</p>
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  {event.holidayType && <span>{event.holidayType}</span>}
+                                  {event.leaveType && <span>{event.leaveType}</span>}
+                                  {event.duration && <span>· {event.duration}</span>}
+                                  {event.status && <span className="capitalize">· {event.status}</span>}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      </div>
 
       {/* Day detail modal — opens on click */}
       <Dialog open={!!selectedDay} onOpenChange={() => setSelectedDay(null)}>
